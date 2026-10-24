@@ -102,15 +102,29 @@ function home(){if(busy)return t('Дождитесь окончания');tab='c
 function login(){if(!/^https?:$/.test(location.protocol))return t('Вход через Steam работает, когда сайт открыт по http(s), а не как файл');const r=location.origin+location.pathname,ns='http://specs.openid.net/auth/2.0';
 location.href='https://steamcommunity.com/openid/login?'+new URLSearchParams({'openid.ns':ns,'openid.mode':'checkid_setup','openid.return_to':r,'openid.realm':location.origin,'openid.identity':ns+'/identifier_select','openid.claimed_id':ns+'/identifier_select'})}
 function logout(){try{localStorage.removeItem('bc_id')}catch(e){}location.href=location.pathname}
-const nick=()=>S.nick||'Игрок '+ID.slice(-4);
-const ava=()=>{if(S.ava)return`<img class="av" src="${S.ava}" referrerpolicy="no-referrer" alt="" onerror="S.ava='';usr()">`;const h=+ID.slice(-3)%360;return`<span class="av" style="background:linear-gradient(135deg,hsl(${h} 12% 82%),hsl(${h} 10% 38%))">${nick()[0].toUpperCase()}</span>`};
+const nick=()=>S.nick||('Steam User '+(ID?ID.slice(-4):''));
+const ava=()=>{if(S.ava)return`<img class="av" src="${S.ava}" referrerpolicy="no-referrer" alt="" onerror="S.ava='';usr()">`;const h=ID?(+ID.slice(-3)%360):120;return`<span class="av" style="background:linear-gradient(135deg,hsl(${h} 12% 82%),hsl(${h} 10% 38%))">${nick()[0].toUpperCase()}</span>`};
 function rename(){const n=prompt('Ваш ник',nick());if(n&&n.trim()){S.nick=n.trim().slice(0,24);S.nc=1;save();usr()}}
 const IC=d=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 function usr(){if(!ID){$('#usr').innerHTML='<button class="btn sm" onclick="login()">Войти через Steam</button>';return}
 $('#usr').innerHTML=`<div class="uc">${ava()}<div class="un"><small>Привет,</small><b class="nk" title="Изменить ник" onclick="rename()">${nick()}</b></div><div class="bl"><small>На счете</small><b id="bal"></b></div><button class="ib" title="Пополнить баланс" onclick="topup()">${IC('<path d="M3 7a2 2 0 0 1 2-2h12v4"/><path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2"/><circle cx="16.5" cy="14.5" r="1.2"/>')}</button><button class="ib" title="Выйти" onclick="logout()">${IC('<path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>')}</button></div>`;bal()}
-async function prof(){const u='https://steamcommunity.com/profiles/'+ID+'?xml=1';
-for(const m of [u,'https://api.allorigins.win/raw?url='+encodeURIComponent(u),'https://corsproxy.io/?'+encodeURIComponent(u)]){try{const x=await(await fetch(m)).text(),d=new DOMParser().parseFromString(x,'text/xml'),n=d.querySelector('steamID'),a=d.querySelector('avatarFull');
-if(n&&n.textContent){if(!S.nc)S.nick=n.textContent.trim();if(a&&a.textContent)S.ava=a.textContent.trim();save();usr();return}}catch(e){}}}
+async function prof(){
+  if(!ID)return;
+  const u='https://steamcommunity.com/profiles/'+ID+'?xml=1';
+  for(const m of [u,'https://api.allorigins.win/raw?url='+encodeURIComponent(u),'https://corsproxy.io/?'+encodeURIComponent(u)]){
+    try{
+      const x=await(await fetch(m)).text();
+      const d=new DOMParser().parseFromString(x,'text/xml');
+      const n=d.querySelector('steamID');
+      const a=d.querySelector('avatarFull');
+      if(n&&n.textContent){
+        if(!S.nc) S.nick=n.textContent.trim();
+        if(a&&a.textContent) S.ava=a.textContent.trim();
+        save(); usr(); return;
+      }
+    }catch(e){}
+  }
+}
 function can(c){if(S.lock){t('Стартовые ₴25 разблокируются после пополнения от ₴100');topup();return 0}if(S.bal<c){t('Недостаточно средств');return 0}return 1}
 function topup(){if(!ID){t('Сначала войдите через Steam');return login()}if($('#md'))return;const m=document.createElement('div');m.id='md';m.style.cssText='position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';
 m.innerHTML=`<div class="pan c" style="max-width:380px;width:100%;margin:0"><h3>Пополнение баланса</h3><p style="color:var(--mu)">Минимум ₴100. После первого пополнения разблокируются стартовые ₴25. Демо-режим: реальные платежи не подключены.</p><input id="am" type="number" min="100" step="50" value="100"><div class="row">${[100,250,500,1000].map(v=>`<button class="chip" onclick="$('#am').value=${v}">${v}</button>`).join('')}</div><div class="row"><button class="btn" onclick="dep()">Пополнить</button><button class="btn alt" onclick="$('#md').remove()">Отмена</button></div></div>`;document.body.appendChild(m)}
@@ -127,18 +141,18 @@ const sq=v=>{Q=v;$('#cl').innerHTML=clist()};
 const V={
 cases:()=>{if(oc<0)return`<input placeholder="Поиск кейса" value="${Q}" oninput="sq(this.value)"><div id="cl">${clist()}</div>`;
 const c=CS[oc];return`<button class="chip" onclick="oc=-1;render()">← Все кейсы</button><div class="pan c" style="margin-top:12px"><div class="hero"><img src="${c.im}" alt=""><div><h2>${c.n}</h2><span class="pr">${f(c.pr)}</span></div></div><div id="roll"></div><div class="row"><button class="btn" onclick="openCase()">Открыть за ${f(c.pr)}</button><label class="chip"><input type="checkbox" style="width:auto;margin:0 6px 0 0" ${fast?'checked':''} onchange="fast=this.checked?1:0">Быстро</label></div></div>
-<h3>Содержимое кейса</h3><div class="list">${[...c.pool].sort((a,b)=>b.p-a.p).map(x=>`<div class="c">${card(x)}<small>${x.ch<.1?x.ch.toFixed(3):x.ch.toFixed(2)}%</small></div>`).join('')}</div>`},
+<h3>Содержимое кейса</h3><div class="list">${[...c.pool].sort((a,b)=>b.p-a.p).map(x=>`<div class="c">${card(x)}</div>`).join('')}</div>`},
 up:()=>`<h2 class="ut">МОДЕРНИЗАЦИЯ ОРУЖИЯ</h2><div id="u1">${u1()}</div>
 <div class="ug"><div class="up-p slid"><span>Добавить баланс</span><input type="range" min="0" max="${Math.floor(S.bal)}" value="${up.add}" oninput="up.add=+this.value;ref()"><b id="sv">${f(up.add)}</b></div><div class="c"><button class="btn big" onclick="upg()">⬆ ПРОКАЧАТЬ</button></div><div class="row mlt">${[2,5,10].map(m=>`<button class="chip" onclick="setM(${m})">x${m}</button>`).join('')}${[30,50,75].map(p=>`<button class="chip" onclick="setP(${p})">${p}%</button>`).join('')}<button class="chip" onclick="shuf()">🔀</button></div></div>
 <div class="lists"><div class="up-p"><h4>Мои предметы (${S.inv.length} шт)</h4><div class="list scroll" id="mi">${mil()}</div></div><div class="up-p"><div class="flt"><b>Выберите предмет</b><select onchange="up.s=this.value;ref()"><option value="a">Цена ↑</option><option value="d" ${up.s=='d'?'selected':''}>Цена ↓</option></select><input type="number" placeholder="от ₴" value="${up.lo}" oninput="up.lo=this.value;ref()"><input type="number" placeholder="до ₴" value="${up.hi}" oninput="up.hi=this.value;ref()"><input placeholder="Поиск" value="${up.q}" oninput="up.q=this.value;ref()"></div><div class="list scroll" id="tg">${tgl()}</div></div></div>`,
 inv:()=>`<div class="pan"><h3>Инвентарь · ${f(S.inv.reduce((s,x)=>s+x.p,0))} ${S.inv.length?'<button class="btn sm" onclick="sellAll()">Продать всё</button>':''}</h3><div class="list">${S.inv.length?S.inv.map((x,i)=>`<div class="c">${card(x)}<button class="btn sm" onclick="sell(${i})">Продать</button></div>`).join(''):'<p style="color:var(--mu)">Пока пусто.</p>'}</div></div>`};
 const TK=Array.from({length:72},(_,i)=>{const a=i*5*Math.PI/180,l=i%6==0?10:5,s=Math.sin(a),c=Math.cos(a);return`<line x1="${150+s*118}" y1="${150-c*118}" x2="${150+s*(118+l)}" y2="${150-c*(118+l)}"/>`}).join('');
 const stake=()=>up.sel.reduce((s,i)=>s+(S.inv[i]?S.inv[i].p:0),0)+Math.min(up.add,S.bal);
-const chn=()=>{const s=stake();return up.tg&&s>0?Math.min(75,s/up.tg.p*95):0};
+const chn=()=> { const s=stake(); return up.tg&&s>0?Math.min(75,s/up.tg.p*95):0; };
 function cat(){if(!CAT)CAT=Object.values(SK).map(s=>mk(s,tierS(s),dw(s))).sort((a,b)=>a.p-b.p);return CAT}
 function u1(){const ch=chn(),L=2*Math.PI*98;
 return`<div class="ug"><div class="up-p c"><div class="hd">Выберите до 6 предметов на апгрейд</div><div class="sg">${up.sel.length?up.sel.map(i=>`<div class="pick" onclick="tog(${i})">${card(S.inv[i])}</div>`).join(''):'<div class="ph">Выберите предметы ниже или добавьте баланс</div>'}</div><div class="sm">Ставка: <b>${f(stake())}</b></div></div>
-<div class="dial"><svg viewBox="0 0 300 300"><g stroke="rgba(255,255,255,.28)" stroke-width="2">${TK}</g><circle cx="150" cy="150" r="98" fill="none" stroke="#262932" stroke-width="16"/><circle cx="150" cy="150" r="98" fill="none" stroke="#e9ebf1" stroke-width="16" stroke-dasharray="${ch/100*L} ${L}" transform="rotate(-90 150 150)" style="filter:drop-shadow(0 0 6px #fff)"/><defs><radialGradient id="dg"><stop offset="0" stop-color="#2d2f39"/><stop offset="1" stop-color="#121317"/></radialGradient></defs><circle cx="150" cy="150" r="78" fill="url(#dg)"/><g id="pt"><path d="M150 68L139 42H161Z" fill="#fff" style="filter:drop-shadow(0 0 5px #fff)"/></g><text x="150" y="152" fill="#fff" font-size="30" font-weight="800" text-anchor="middle">${ch.toFixed(2)}%</text><text x="150" y="174" fill="#8d93a1" font-size="12" text-anchor="middle">шанс</text></svg></div>
+<div class="dial"><svg viewBox="0 0 300 300"><g stroke="rgba(255,255,255,.28)" stroke-width="2">${TK}</g><circle cx="150" cy="150" r="98" fill="none" stroke="#262932" stroke-width="16"/><circle cx="150" cy="150" r="98" fill="none" stroke="#e9ebf1" stroke-width="16" stroke-dasharray="${ch/100*L} ${L}" transform="rotate(-90 150 150)" style="filter:drop-shadow(0 0 6px #fff)"/><defs><radialGradient id="dg"><stop offset="0" stop-color="#2d2f39"/><stop offset="1" stop-color="#121317"/></radialGradient></defs><circle cx="150" cy="150" r="78" fill="url(#dg)"/><g id="pt"><path d="M150 68L139 42H161Z" fill="#fff" style="filter:drop-shadow(0 0 5px #fff)"/></g></svg></div>
 <div class="up-p c"><div class="hd">Выберите оружие, которое хотите получить</div>${up.tg?`<div class="sg one">${card(up.tg)}</div><div class="sm">Цена: <b>${f(up.tg.p)}</b></div>`:'<div class="ph">Выберите предмет из каталога или нажмите множитель</div>'}</div></div>`}
 const mil=()=>S.inv.map((x,i)=>`<div class="pick ${up.sel.includes(i)?'sel':''}" onclick="tog(${i})">${card(x)}</div>`).join('')||'<div class="ph">Нет предметов. Откройте любой кейс</div>';
 function tgl(){const q=up.q.toLowerCase(),s=stake(),lo=up.lo!==''?+up.lo:(s>0?s*1.01:0),hi=up.hi!==''?+up.hi:1e12;
@@ -171,7 +185,7 @@ const sk=await fetch(SRC+'skins.json').then(r=>r.json());
 sk.forEach(s=>SK[s.id]=s);L.textContent='Загружаю цены и курс гривны…';
 await Promise.allSettled([fetch(NBU).then(r=>r.json()).then(d=>{RATE=+d[0].rate||RATE}),fetch(PRICES).then(r=>r.json()).then(d=>{PR=d;pm=1})]);
 CS=mkCases();
-for(let i=0;i<14;i++)addDrop();setInterval(addDrop,2500);render();$('#ld').remove();if(ID&&!S.ava)prof();
+for(let i=0;i<14;i++)addDrop();setInterval(addDrop,2500);render();$('#ld').remove();if(ID){prof();}
 t(`${Object.keys(SK).length} скинов · ${CS.length} кейсов · курс ${RATE.toFixed(2)} ₴`+(pm?'':' · цены оценочные'))
 }catch(e){L.innerHTML='Не удалось загрузить данные. Откройте файл в браузере с доступом в интернет или разместите его на своём хостинге.<br><br><button class="btn" onclick="location.reload()">Повторить</button>'}}
 init();
