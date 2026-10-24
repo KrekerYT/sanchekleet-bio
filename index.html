@@ -113,20 +113,58 @@
     try{var c=parseInt(localStorage.getItem('sanchek_views')||'0',10)+1;localStorage.setItem('sanchek_views',c);show(BASE+c);}
     catch(e){show(BASE+1);}
   }
-  // общий счётчик: пробуем несколько сервисов по очереди, в конце — локальный запасной
+  // счётчик: 1 IP = 1 просмотр (в базе хранится только хэш IP, не сам адрес)
+  var FB_URLS=[
+    'https://bioo-c626e-default-rtdb.firebaseio.com',
+    'https://bioo-c626e-default-rtdb.europe-west1.firebasedatabase.app',
+    'https://bioo-c626e-default-rtdb.asia-southeast1.firebasedatabase.app'
+  ];
   function getJSON(url){
     var ctl=('AbortController' in window)?new AbortController():null;
     var t=setTimeout(function(){if(ctl)ctl.abort();},6000);
     return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(r){clearTimeout(t);if(!r.ok)throw 0;return r.json();});
   }
-  var SOURCES=[
-    function(){return getJSON('https://abacus.jasoncameron.dev/hit/sanchek-l33t-site/views').then(function(d){if(typeof d.value!=='number')throw 0;return d.value;});},
-    function(){return getJSON('https://api.counterapi.dev/v1/sanchek-l33t-site/views/up').then(function(d){if(typeof d.count!=='number')throw 0;return d.count;});}
-  ];
-  (function tryNext(i){
-    if(i>=SOURCES.length){localFallback();return;}
-    SOURCES[i]().then(function(c){show(BASE+c);}).catch(function(){tryNext(i+1);});
-  })(0);
+  function pickDB(i){
+    if(i>=FB_URLS.length)return Promise.reject(0);
+    return getJSON(FB_URLS[i]+'/stats/views.json').then(function(){return FB_URLS[i];}).catch(function(){return pickDB(i+1);});
+  }
+  function getIP(){
+    return getJSON('https://api.ipify.org?format=json').then(function(d){return d.ip;})
+      .catch(function(){return getJSON('https://api64.ipify.org?format=json').then(function(d){return d.ip;});});
+  }
+  function sha(t){
+    var b=new TextEncoder().encode('sanchek-salt:'+t);
+    return crypto.subtle.digest('SHA-256',b).then(function(h){
+      return Array.prototype.map.call(new Uint8Array(h),function(x){return ('0'+x.toString(16)).slice(-2);}).join('');
+    });
+  }
+  function readViews(U){
+    return getJSON(U+'/stats/views.json').then(function(v){return typeof v==='number'?v:0;});
+  }
+  var DONE_KEY='sanchek_counted';
+  var already=false;
+  try{already=localStorage.getItem(DONE_KEY)==='1';}catch(e){}
+
+  pickDB(0).then(function(U){
+    function finish(){return readViews(U).then(function(v){show(BASE+v);});}
+    if(already)return finish();
+    return getIP().then(sha).then(function(h){
+      // пишем метку IP только если её ещё нет (правила базы не дают перезаписать)
+      return fetch(U+'/visitors/'+h+'.json',{method:'PUT',body:'true'}).then(function(r){
+        if(r.ok){
+          return fetch(U+'/stats.json',{method:'PATCH',body:JSON.stringify({views:{'.sv':{increment:1}}})});
+        }
+        // 401/403 = этот IP уже считался
+      });
+    }).then(function(){
+      try{localStorage.setItem(DONE_KEY,'1');}catch(e){}
+      return finish();
+    });
+  }).catch(function(){
+    // нет связи с базой — хотя бы не накручиваем: +1 один раз на браузер
+    if(already){try{show(BASE+parseInt(localStorage.getItem('sanchek_views')||'0',10));}catch(e){show(BASE);}}
+    else localFallback();
+  });
 })();
 </script>
 <script>
