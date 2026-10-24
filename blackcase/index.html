@@ -90,12 +90,29 @@ const tierP=p=>p<5?0:p<30?1:p<120?2:p<400?3:4;
 const spread=(a,n)=>a.length<=n?a:Array.from({length:n},(_,i)=>a[Math.round(i*(a.length-1)/(n-1))]);
 const crate=(l,c)=>'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150"><defs><linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f5f8"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><path d="M30 55l70-30 70 30v60l-70 30-70-30z" fill="url(#a)"/><path d="M30 55l70 30 70-30M100 85v60" fill="none" stroke="#111" stroke-opacity=".35" stroke-width="3"/><rect x="68" y="92" width="64" height="26" rx="6" fill="#0b0b0e" fill-opacity=".85"/><text x="100" y="111" text-anchor="middle" font-family="Arial" font-weight="900" font-size="16" fill="#fff">${l}</text></svg>`);
 let stOK=0;const skipSt=s=>s.st&&stOK&&!usd(s.name);
-function pool(fn,lo,hi){const o=[];for(const s of Object.values(SK)){if(!fn(s)||skipSt(s))continue;const a=wl(s);for(const w of a.length?a:['']){const p=+(pUSD(s,w,tierS(s))*RATE).toFixed(2);if(p>=lo&&p<=hi)o.push({n:s.name,im:s.image,w,p,st:s.st?1:0})}}return o}
-function mkCase(n,pr,im,pl,rtp,sh){pl.sort((a,b)=>a.p-b.p);sh=sh||.15;
-const W=a=>{const k=pl.map(x=>Math.pow(x.p,-a));let A=0,B=0;pl.forEach((x,i)=>x.st?A+=k[i]:B+=k[i]);const m=A&&B?sh/(1-sh)*B/A:1;return k.map((v,i)=>pl[i].st?v*m:v)};
-const ev=a=>{const w=W(a);let s=0,t=0;w.forEach((v,i)=>{s+=v*pl[i].p;t+=v});return s/t},tg=pr*rtp;let lo=0,hi=8;for(let i=0;i<40;i++){const m=(lo+hi)/2;ev(m)>tg?lo=m:hi=m}
+const rng=seed=>()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const geo=(a,b,n)=>Array.from({length:n},(_,i)=>a*Math.pow(b/a,i/(n-1)));
+const stn=n=>n.startsWith('★ ')?'★ StatTrak™ '+n.slice(2):'StatTrak™ '+n;
+function vars(fn){const o=[];for(const s of Object.values(SK)){if(s.st||!fn(s))continue;const a=wl(s);for(const w of a.length?a:['']){if(pm&&!usd(hn(s,w)))continue;const p=+(pUSD(s,w,tierS(s))*RATE).toFixed(2);if(p>=.5)o.push({s,w,p})}}return o}
+function svars(){const o=[];for(const s of Object.values(SK)){if(!s.st||skipSt(s))continue;const p=+(pUSD(s,'',0)*RATE).toFixed(2);if(p>=.5)o.push({s,w:'',p})}return o}
+function nr(V,t,used,R){const c=V.filter(v=>!used.has(v.s.id)).sort((a,b)=>Math.abs(Math.log(a.p/t))-Math.abs(Math.log(b.p/t))).slice(0,3);return c.length?c[R()*c.length|0]:null}
+const itm=(v,n,p)=>({n:n||v.s.name,im:v.s.image,w:v.w,p:p==null?v.p:p,st:0});
+function mkCase(n,pr,im,pl,rtp){pl.sort((a,b)=>a.p-b.p);const mn=pl.length?pl[0].p*1.25:0;if(pr*rtp<mn)pr=Math.ceil(mn/rtp/5)*5;
+const W=a=>pl.map(x=>Math.pow(x.p,-a)),ev=a=>{let s=0,t=0;W(a).forEach((v,i)=>{s+=v*pl[i].p;t+=v});return s/t},tg=pr*rtp;let lo=0,hi=30;for(let i=0;i<50;i++){const m=(lo+hi)/2;ev(m)>tg?lo=m:hi=m}
 const ws=W(hi),tot=ws.reduce((a,b)=>a+b);pl.forEach(x=>{x.r=tierP(x.p)});return{n,pr,im,pool:pl,ws,tot}}
-const mkCases=()=>[mkCase('Первый',25,CI[0],pool(s=>!/Knives|Gloves|Equipment/.test(s.category.name),.5,30000),.8),mkCase('Мечта авапера',67,CI[1],pool(s=>s.weapon&&s.weapon.name=='AWP',.5,1e9),.8)];
+function mkCases(){const R=rng(20261024),used=new Set();
+/* Кейс 1: ~35 предметов, каждый скин один раз, плюс несколько StatTrak-версий и стикеры */
+const V1=vars(s=>!/Knives|Gloves|Equipment/.test(s.category.name)&&!(s.weapon&&s.weapon.name=='AWP')&&s.category.name!='Sticker').filter(v=>v.p<=3000),A=[];
+for(const t of geo(2,2500,26)){const v=nr(V1,t,used,R);if(v){used.add(v.s.id);A.push(v)}}
+for(let i=0;A.length<26&&i<40;i++){const v=nr(V1,2+R()*2000,used,R);if(v){used.add(v.s.id);A.push(v)}}
+const c1=A.map(v=>itm(v)),stl=[];
+for(const v of A){if(!v.s.stattrak)continue;const pu=usd(stn(v.s.name)+' ('+v.w+')'),p=pu?pu*RATE:(pm?0:v.p*1.6);if(p>=1)stl.push(itm(v,stn(v.s.name),+p.toFixed(2)))}
+c1.push(...spread(stl,5));
+const SV=svars();for(const t of [4,15,60,250]){const v=nr(SV,t,used,R);if(v){used.add(v.s.id);c1.push(itm(v))}}
+/* Кейс 2: 10 разных AWP от минимальной цены до ₴1000 */
+const V2=vars(s=>s.weapon&&s.weapon.name=='AWP').filter(v=>v.p<=1000),c2=[],mn=V2.length?Math.min(...V2.map(v=>v.p)):1;
+for(const t of geo(Math.max(1,mn),1000,10)){const v=nr(V2,t,used,R);if(v){used.add(v.s.id);c2.push(itm(v))}}
+return[mkCase('Первый',25,CI[0],c1,.5),mkCase('Мечта авапера',67,CI[1],c2,.5)]}
 function pick(c){let r=Math.random()*c.tot,i=0;while(i<c.pool.length-1&&r>=c.ws[i]){r-=c.ws[i];i++}const x=c.pool[i];return{n:x.n,im:x.im,r:x.r,w:x.w,p:x.p}}
 const ab=w=>w.split(/[ -]/).map(a=>a[0]).join('');
 const card=x=>{const p=x.n.split(' | ');return`<div class="it" style="--c:${RC[x.r]}"><em>${ab(x.w)}</em><img src="${img(x.im)}" loading="lazy" referrerpolicy="no-referrer" alt=""><small>${p[0]}</small><b>${p[1]||'Vanilla'}</b><i>${f(x.p)}</i></div>`};
