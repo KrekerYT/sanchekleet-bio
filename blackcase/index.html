@@ -113,9 +113,13 @@ function U0(){return{sel:[],add:0,tg:null,tf:F0('w'),mf:F0()}}
 let INV=Object.assign(F0(),{sb:'t',s:'d',f:'all'}),cnt=1,um=S.um==null?1:S.um;
 const f=v=>'₴'+(v>=1000?Math.round(v).toLocaleString('uk-UA'):v.toFixed(2)),img=u=>u+'/200fx150f';
 const tierS=s=>s.st?0:/Knives|Gloves/.test(s.category.name)?4:(TM[s.rarity.name]??0);
-function usd(h){const p=PR[h];if(!p)return null;const s=p.steam||{};return +s.last_24h||+s.last_7d||+s.last_30d||+s.last_90d||(p.skinport&&+p.skinport.starting_at)||(p.csgotrader&&+p.csgotrader.price)||null}
+const CAP=60000,PV=o=>{if(o==null)return 0;if(typeof o=='object')return PV(o.price)||PV(o.starting_at)||PV(o.suggested_price)||PV(o.highest_order)||PV(o.median_price)||PV(o.min_price)||0;return +o>0?+o:0},
+PK=['skinport','csgotrader','csmoney','buff163','bitskins','lootfarm','swapgg','cstrade','skinbaron','csgoempire','waxpeer','white'],
+TOPN={'AWP | Dragon Lore':1450,'AWP | Gungnir':1400,'M4A4 | Howl':1300,'AK-47 | Wild Lotus':1000,'AWP | Medusa':900,'M4A1-S | Knight':650,'AK-47 | Fire Serpent':450,'M4A4 | Poseidon':260,'AWP | Fade':120};
+function pv(p){const s=p.steam||{};let v=+s.last_24h||+s.last_7d||+s.last_30d||+s.last_90d;if(v)return v;for(const k of PK){v=PV(p[k]);if(v)return v}for(const k in p){v=PV(p[k]);if(v)return v}return 0}
+function usd(h){const p=PR[h];if(!p)return null;return pv(p)||null}
 const hn=(s,w)=>w?s.name+' ('+w+')':s.name,dn=s=>s.ru||s.name;
-function pUSD(s,w,t){const v=usd(hn(s,w));if(v)return v;let h=2166136261;for(const c of s.id+'|'+w){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}const u=((h>>>0)%100000)/100000,k=[1,.8,.62,.5,.42][WN.indexOf(w)]||1;return EST[t]*Math.exp((u-.5)*2.4)*k}
+function pUSD(s,w,t){const v=usd(hn(s,w));if(v)return Math.min(v,CAP/RATE);const tp=TOPN[s.name];if(tp)return Math.min(tp*([1,.8,.62,.5,.42][WN.indexOf(w)]||1),CAP/RATE);let h=2166136261;for(const c of s.id+'|'+w){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}const u=((h>>>0)%100000)/100000,k=[1,.8,.62,.5,.42][WN.indexOf(w)]||1;return Math.min(EST[t]*Math.exp((u-.5)*2.4)*k,CAP/RATE)}
 const wl=s=>(s.wears||[]).map(w=>w.name);
 function rw(s){const a=wl(s);if(!a.length)return'';let r=Math.random()*a.reduce((x,w)=>x+WW[WN.indexOf(w)],0);for(const w of a){r-=WW[WN.indexOf(w)];if(r<0)return w}return a[0]}
 const dw=s=>{const a=wl(s);return a.includes('Field-Tested')?'Field-Tested':a[0]||''};
@@ -296,10 +300,11 @@ const trs=[...document.querySelectorAll('#roll .tr')],W=trs[0].parentElement.cli
 anim(D,p=>{const e=1-Math.pow(1-p,4.2);trs.forEach((tr,k)=>tr.style.transform=`translateX(${-tg[k]*e}px)`);const ix=Math.floor((tg[0]*e+W/2)/iw);if(ix!==last){last=ix;snd.tick()}},fin)}
 /* ===== Загрузка ===== */
 async function getRate(){try{const d=await fetch(NBU).then(r=>r.json()),v=+d[0].rate;if(v>0){RATE=v;return}}catch(e){}try{const d=await fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()),v=+d.rates.UAH;if(v>0)RATE=v}catch(e){}}
-const okPr=o=>{let n=0;for(const k in o){const p=o[k],q=p&&p.steam||{};if(+q.last_24h||+q.last_7d||+q.last_30d||+q.last_90d||(p&&p.skinport&&+p.skinport.starting_at)||(p&&p.csgotrader&&+p.csgotrader.price))if(++n>500)return 1}return 0};
+const okPr=o=>{let n=0;for(const k in o){const p=o[k];if(p&&typeof p=='object'&&pv(p)&&++n>500)return 1}return 0};
+const BP='https://csgobackpack.net/api/GetItemsList/v2/?no_details=1&currency=USD',bp=d=>{const L=d&&d.items_list;if(!L)throw 0;const o={};for(const k in L){const x=L[k],q=x&&x.price;if(!q)continue;const v=q['24_hours']||q['7_days']||q['30_days']||q['all_time']||{},m=+v.median||+v.average;if(m>0)o[x.name||k]={steam:{last_24h:m}}}return o};
 async function loadPrices(){const ac=[],gx=(u,cv)=>{const c=new AbortController();ac.push(c);return fetch(u,{signal:c.signal}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{d=cv?cv(d):d;if(!d||!okPr(d))throw 0;return d})};
 const sp=d=>{if(!Array.isArray(d))throw 0;const o={};for(const x of d){const v=x.median_price||x.min_price||x.suggested_price;if(v)o[x.market_hash_name]={skinport:{starting_at:v}}}return o};
-const d=await Promise.any([gx(PRICES),gx('https://corsproxy.io/?url='+encodeURIComponent(PRICES)),gx('https://raw.githubusercontent.com/ByMykel/counter-strike-price-tracker/main/static/prices/latest.json'),gx('https://api.skinport.com/v1/items?app_id=730&currency=USD',sp)]);ac.forEach(c=>c.abort());return d}
+const d=await Promise.any([gx(PRICES),...PX.slice(1).map(p=>gx(p(PRICES))),...PX.map(p=>gx(p(BP),bp)),gx('https://raw.githubusercontent.com/ByMykel/counter-strike-price-tracker/main/static/prices/latest.json'),gx('https://api.skinport.com/v1/items?app_id=730&currency=USD',sp)]);ac.forEach(c=>c.abort());return d}
 async function init(){const L=$('#lt');
 try{L.textContent='Загружаю каталог скинов…';
 const RU=SRC.replace('/en/','/ru/'),jf=u=>fetch(u).then(r=>r.json());
@@ -309,7 +314,7 @@ sk.forEach(s=>{s.ru=ru[s.id];SK[s.id]=s});st.forEach(s=>{if(s.image){s.ru=ru[s.i
 await Promise.allSettled([getRate(),loadPrices().then(d=>{PR=d;pm=1})]);
 stOK=st.length&&pm&&st.filter(s=>usd(s.name)).length>=50?1:0;CS=mkCases();
 for(let i=0;i<14;i++)addDrop();setInterval(addDrop,2500);render();$('#ld').remove();if(ID&&!S.ps)prof().then(ok=>{if(!ok)t('Профиль Steam не загрузился: нажмите ⟳ рядом с ником, чтобы повторить')});
-t(`${Object.keys(SK).length} предметов · ${CS.length} кейсов · курс ${RATE.toFixed(2)} ₴`+(pm?'':' · цены оценочные'))
+t(`${Object.keys(SK).length} предметов · ${CS.length} кейсов · курс ${RATE.toFixed(2)} ₴`+(pm?'':' · ЦЕНЫ НЕ ЗАГРУЗИЛИСЬ, показаны оценочные'))
 }catch(e){L.innerHTML='Не удалось загрузить данные. Откройте файл в браузере с доступом в интернет или разместите его на своём хостинге.<br><br><button class="btn" onclick="location.reload()">Повторить</button>'}}
 init();
 </script>
