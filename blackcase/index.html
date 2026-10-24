@@ -23,10 +23,10 @@ aside button:hover{background:var(--p2)}aside button.on{background:var(--ac);col
 .btn{font:inherit;font-weight:800;color:#111;background:var(--ac);border:0;border-radius:10px;padding:11px 26px;cursor:pointer;box-shadow:0 6px 22px rgba(255,255,255,.16);transition:.2s}.btn:hover{filter:brightness(1.1);transform:translateY(-1px)}.btn.alt{background:var(--p2);color:#fff;box-shadow:none}.btn.sm{padding:5px 12px;font-size:.75rem}
 .pan{background:var(--p);border:1px solid var(--b);border-radius:14px;padding:18px;margin-bottom:16px}.c{text-align:center}h2,h3,h4{margin:8px 0 10px}
 input,select{font:inherit;color:#fff;background:var(--p2);border:1px solid var(--b);border-radius:10px;padding:10px 14px;width:100%;margin-bottom:12px}
-.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:10px}
-.cc{cursor:pointer;text-align:center;padding:14px 8px 12px;border-radius:14px;background:radial-gradient(circle at 50% 35%,#383a44,var(--p) 72%);border:1px solid var(--b);transition:.25s}
-.cc:hover{transform:translateY(-5px);border-color:#e3e6ee;box-shadow:0 12px 34px rgba(255,255,255,.12)}.cc img{width:130px;height:98px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6))}
-.cc b{display:block;font-size:.85rem;margin:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr{display:inline-block;padding:3px 14px;border-radius:8px;background:#0b0d18;color:var(--gr);font-weight:800}
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:10px}
+.cc{cursor:pointer;text-align:center;padding:18px 12px;border-radius:16px;background:linear-gradient(145deg,rgba(30,32,39,0.8),rgba(21,22,27,0.9));border:1px solid var(--b);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.25s}
+.cc:hover{transform:translateY(-5px);border-color:rgba(255,255,255,.2);box-shadow:0 12px 34px rgba(255,255,255,.1)}.cc img{width:140px;height:105px;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,.7))}
+.cc b{display:block;font-size:.95rem;margin:8px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr{display:inline-block;padding:5px 16px;border-radius:10px;background:#0b0d18;color:var(--gr);font-weight:800;font-size:.9rem;border:1px solid rgba(82,224,138,.2)}
 .it{width:150px;flex:none;margin:5px;padding:8px 6px;border-radius:10px;text-align:center;background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--c) 34%,transparent),var(--p2) 75%);border-bottom:3px solid var(--c);font-size:.7rem;position:relative}
 .it img{width:120px;height:90px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}.it small,.it b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.it small{color:var(--mu)}.it i{font-style:normal;color:var(--gr);font-weight:800}.it em{position:absolute;top:6px;right:8px;font-style:normal;font-size:.6rem;color:#cdd3f3}
 .list{display:flex;flex-wrap:wrap}.pick{cursor:pointer}.sel .it{outline:2px solid #fff;box-shadow:0 0 22px var(--c)}.scroll{max-height:380px;overflow:auto}
@@ -131,11 +131,11 @@ m.innerHTML=`<div class="pan c" style="max-width:380px;width:100%;margin:0"><h3>
 function dep(){const v=+$('#am').value;if(!(v>=100))return t('Минимальная сумма ₴100');S.bal+=v;t(S.lock?'Пополнено, ₴25 разблокированы':'Баланс пополнен');S.lock=0;save();bal();$('#md').remove()}
 function sell(i){const x=S.inv[i];if(!x)return;S.bal+=x.p;S.inv.splice(i,1);save();bal();if(tab=='inv')render()}
 function sellAll(){S.bal+=S.inv.reduce((s,x)=>s+x.p,0);S.inv=[];save();render()}
-const UN=['Kuzya','n1ghtfox','Dimon_77','sh0t','Vasyl','Reaper','AlexM','toxic','Lena','mrBlack'],drops=[];
+const drops=[];
 function addDrop(){const it=pick(rnd(CS));drops.unshift(it);drops.length=Math.min(drops.length,14);$('#tick').innerHTML=drops.map(x=>`<div class="mi" style="--c:${RC[x.r]}"><img src="${img(x.im)}" referrerpolicy="no-referrer" alt=""><small>${f(x.p)}</small></div>`).join('')}
 
 /* ===== Страницы ===== */
-const cc=c=>`<div class="cc" onclick="oc=${CS.indexOf(c)};render()"><img src="${c.im}" alt=""><b>${c.n}</b><span class="pr">${f(c.pr)}</span></div>`;
+const cc=c=>`<div class="cc" onclick="oc=${CS.indexOf(c)};render()"><img src="${c.im}" alt=""><b>${c.n}</b><br><span class="pr">${f(c.pr)}</span></div>`;
 const clist=()=>{const q=Q.toLowerCase();return`<div class="cg">${CS.filter(c=>c.n.toLowerCase().includes(q)).map(cc).join('')||'Ничего не найдено'}</div>`};
 const sq=v=>{Q=v;$('#cl').innerHTML=clist()};
 const V={
