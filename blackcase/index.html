@@ -23,10 +23,10 @@ aside button:hover{background:var(--p2)}aside button.on{background:var(--ac);col
 .btn{font:inherit;font-weight:800;color:#111;background:var(--ac);border:0;border-radius:10px;padding:11px 26px;cursor:pointer;box-shadow:0 6px 22px rgba(255,255,255,.16);transition:.2s}.btn:hover{filter:brightness(1.1);transform:translateY(-1px)}.btn.alt{background:var(--p2);color:#fff;box-shadow:none}.btn.sm{padding:5px 12px;font-size:.75rem}
 .pan{background:var(--p);border:1px solid var(--b);border-radius:14px;padding:18px;margin-bottom:16px}.c{text-align:center}h2,h3,h4{margin:8px 0 10px}
 input,select{font:inherit;color:#fff;background:var(--p2);border:1px solid var(--b);border-radius:10px;padding:10px 14px;width:100%;margin-bottom:12px}
-.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:10px}
-.cc{cursor:pointer;text-align:center;padding:14px 8px 12px;border-radius:14px;background:radial-gradient(circle at 50% 35%,#383a44,var(--p) 72%);border:1px solid var(--b);transition:.25s}
-.cc:hover{transform:translateY(-5px);border-color:#e3e6ee;box-shadow:0 12px 34px rgba(255,255,255,.12)}.cc img{width:100%;max-width:150px;aspect-ratio:1;object-fit:cover;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.6)}
-.cc b{display:block;font-size:.85rem;margin:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr{display:inline-block;padding:3px 14px;border-radius:8px;background:#0b0d18;color:var(--gr);font-weight:800}
+.cg{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:10px}@media(max-width:1250px){.cg{grid-template-columns:repeat(4,1fr)}}@media(max-width:950px){.cg{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.cg{grid-template-columns:repeat(2,1fr)}}
+.cc{cursor:pointer;text-align:center;padding:12px 12px 14px;border-radius:14px;background:radial-gradient(circle at 50% 35%,#383a44,var(--p) 72%);border:1px solid var(--b);transition:.25s}
+.cc:hover{transform:translateY(-5px);border-color:#e3e6ee;box-shadow:0 12px 34px rgba(255,255,255,.12)}.cc img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.cc b{display:block;font-size:1rem;margin:10px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr{display:inline-block;padding:3px 14px;border-radius:8px;background:#0b0d18;color:var(--gr);font-weight:800}
 .it{width:150px;flex:none;margin:5px;padding:8px 6px;border-radius:10px;text-align:center;background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--c) 34%,transparent),var(--p2) 75%);border-bottom:3px solid var(--c);font-size:.7rem;position:relative}
 .it img{width:120px;height:90px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}.it small,.it b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.it small{color:var(--mu)}.it i{font-style:normal;color:var(--gr);font-weight:800}.it em{position:absolute;top:6px;right:8px;font-style:normal;font-size:.6rem;color:#cdd3f3}
 .list{display:flex;flex-wrap:wrap}.pick{cursor:pointer}.sel .it{outline:2px solid #fff;box-shadow:0 0 22px var(--c)}.scroll{max-height:380px;overflow:auto}
@@ -70,21 +70,22 @@ const CI=['case1.jpg','case2.jpg'];
 const SRC='https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/',PRICES='https://prices.csgotrader.app/latest/prices_v6.json',NBU='https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json';
 const $=s=>document.querySelector(s),rnd=a=>a[Math.random()*a.length|0],sl=ms=>new Promise(r=>setTimeout(r,ms));
 const RC=['#4b69ff','#8847ff','#d32ce6','#eb4b4b','#ffd700'],RN=['Mil-Spec','Restricted','Classified','Covert','Rare Special'],BASE=[79.92,15.98,3.2,.64,.26],EST=[.5,3,12,60,400];
-const WN=['Factory New','Minimal Wear','Field-Tested','Well-Worn','Battle-Scarred'],WW=[3,7,33,24,33],TM={'Mil-Spec Grade':0,'Restricted':1,'Classified':2,'Covert':3};
+const WN=['Factory New','Minimal Wear','Field-Tested','Well-Worn','Battle-Scarred'],WW=[3,7,33,24,33],WR=['Прямо с завода','Немного поношенное','После полевых испытаний','Поношенное','Закалённое в боях'],WA=['ПЗ','НП','ПИ','ПН','ЗБ'],TM={'Mil-Spec Grade':0,'Restricted':1,'Classified':2,'Covert':3};
 (function(){const p=new URLSearchParams(location.search),c=p.get('openid.claimed_id'),m=c&&c.match(/\/openid\/id\/(\d{17})$/);if(m&&p.get('openid.mode')=='id_res'){try{localStorage.setItem('bc_id',m[1])}catch(e){}history.replaceState(null,'',location.pathname)}})();
 let ID='';try{ID=localStorage.getItem('bc_id')||''}catch(e){}
-let SK={},CS=[],PR={},RATE=41.5,CAT=null,pm=0,S={bal:25,lock:1,inv:[]},tab='cases',oc=-1,Q='',busy=0,ang=0,fast=0,up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:''};
+let SK={},CS=[],PR={},RATE=41.5,CAT=null,pm=0,S={bal:25,lock:1,inv:[]},tab='cases',oc=-1,Q='',busy=0,ang=0,fast=0,up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:'',k:'w',n:60};
 try{const d=JSON.parse(localStorage.getItem('bc4_'+(ID||'guest')));if(d&&d.inv)S=d}catch(e){}
+if(!S.v3){S.v3=1;S.nc=0;S.ps=0;if(/^Игрок \d{4}$/.test(S.nick||''))S.nick=''}
 const save=()=>{try{localStorage.setItem('bc4_'+(ID||'guest'),JSON.stringify(S))}catch(e){}};
 const f=v=>'₴'+(v>=1000?Math.round(v).toLocaleString('uk-UA'):v.toFixed(2)),img=u=>u+'/200fx150f';
 const tierS=s=>s.st?0:/Knives|Gloves/.test(s.category.name)?4:(TM[s.rarity.name]??0);
 function usd(h){const p=PR[h];if(!p)return null;const s=p.steam||{};return +s.last_24h||+s.last_7d||+s.last_30d||+s.last_90d||(p.skinport&&+p.skinport.starting_at)||(p.csgotrader&&+p.csgotrader.price)||null}
-const hn=(s,w)=>w?s.name+' ('+w+')':s.name;
-function pUSD(s,w,t){const v=usd(hn(s,w));if(v)return v;let h=0;for(const c of s.id)h=(h*31+c.charCodeAt(0))%97;return EST[t]*(.6+h/120)}
+const hn=(s,w)=>w?s.name+' ('+w+')':s.name,dn=s=>s.ru||s.name;
+function pUSD(s,w,t){const v=usd(hn(s,w));if(v)return v;let h=2166136261;for(const c of s.id+'|'+w){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}const u=((h>>>0)%100000)/100000,k=[1,.8,.62,.5,.42][WN.indexOf(w)]||1;return EST[t]*Math.exp((u-.5)*2.4)*k}
 const wl=s=>(s.wears||[]).map(w=>w.name);
 function rw(s){const a=wl(s);if(!a.length)return'';let r=Math.random()*a.reduce((x,w)=>x+WW[WN.indexOf(w)],0);for(const w of a){r-=WW[WN.indexOf(w)];if(r<0)return w}return a[0]}
 const dw=s=>{const a=wl(s);return a.includes('Field-Tested')?'Field-Tested':a[0]||''};
-const mk=(s,t,w)=>({n:s.name,im:s.image,r:t,w,p:+(pUSD(s,w,t)*RATE).toFixed(2)});
+const mk=(s,t,w)=>({n:dn(s),e:s.name,im:s.image,r:t,w,k:s.st?'t':/Knives|Gloves/.test(s.category.name)?'k':'w',p:+(pUSD(s,w,t)*RATE).toFixed(2)});
 function avg(s,t){if(s._a)return s._a;const a=wl(s);const w=a.length?a:[''];return s._a=w.reduce((x,y)=>x+pUSD(s,y,t),0)/w.length*RATE}
 const tierP=p=>p<5?0:p<30?1:p<120?2:p<400?3:4;
 const spread=(a,n)=>a.length<=n?a:Array.from({length:n},(_,i)=>a[Math.round(i*(a.length-1)/(n-1))]);
@@ -96,7 +97,7 @@ const stn=n=>n.startsWith('★ ')?'★ StatTrak™ '+n.slice(2):'StatTrak™ '+n
 function vars(fn){const o=[];for(const s of Object.values(SK)){if(s.st||!fn(s))continue;const a=wl(s);for(const w of a.length?a:['']){if(pm&&!usd(hn(s,w)))continue;const p=+(pUSD(s,w,tierS(s))*RATE).toFixed(2);if(p>=.5)o.push({s,w,p})}}return o}
 function svars(){const o=[];for(const s of Object.values(SK)){if(!s.st||skipSt(s))continue;const p=+(pUSD(s,'',0)*RATE).toFixed(2);if(p>=.5)o.push({s,w:'',p})}return o}
 function nr(V,t,used,R){const c=V.filter(v=>!used.has(v.s.id)).sort((a,b)=>Math.abs(Math.log(a.p/t))-Math.abs(Math.log(b.p/t))).slice(0,3);return c.length?c[R()*c.length|0]:null}
-const itm=(v,n,p)=>({n:n||v.s.name,im:v.s.image,w:v.w,p:p==null?v.p:p,st:0});
+const itm=(v,n,p,e)=>({n:n||dn(v.s),e:e||v.s.name,im:v.s.image,w:v.w,p:p==null?v.p:p,st:0});
 function mkCase(n,pr,im,pl,rtp){pl.sort((a,b)=>a.p-b.p);const mn=pl.length?pl[0].p*1.25:0;if(pr*rtp<mn)pr=Math.ceil(mn/rtp/5)*5;
 const W=a=>pl.map(x=>Math.pow(x.p,-a)),ev=a=>{let s=0,t=0;W(a).forEach((v,i)=>{s+=v*pl[i].p;t+=v});return s/t},tg=pr*rtp;let lo=0,hi=30;for(let i=0;i<50;i++){const m=(lo+hi)/2;ev(m)>tg?lo=m:hi=m}
 const ws=W(hi),tot=ws.reduce((a,b)=>a+b);pl.forEach(x=>{x.r=tierP(x.p)});return{n,pr,im,pool:pl,ws,tot}}
@@ -106,7 +107,7 @@ const V1=vars(s=>!/Knives|Gloves|Equipment/.test(s.category.name)&&!(s.weapon&&s
 for(const t of geo(2,2500,26)){const v=nr(V1,t,used,R);if(v){used.add(v.s.id);A.push(v)}}
 for(let i=0;A.length<26&&i<40;i++){const v=nr(V1,2+R()*2000,used,R);if(v){used.add(v.s.id);A.push(v)}}
 const c1=A.map(v=>itm(v)),stl=[];
-for(const v of A){if(!v.s.stattrak)continue;const pu=usd(stn(v.s.name)+' ('+v.w+')'),p=pu?pu*RATE:(pm?0:v.p*1.6);if(p>=1)stl.push(itm(v,stn(v.s.name),+p.toFixed(2)))}
+for(const v of A){if(!v.s.stattrak)continue;const pu=usd(stn(v.s.name)+' ('+v.w+')'),p=pu?pu*RATE:(pm?0:v.p*1.6);if(p>=1)stl.push(itm(v,stn(dn(v.s)),+p.toFixed(2),stn(v.s.name)))}
 c1.push(...spread(stl,5));
 const SV=svars();for(const t of [4,15,60,250]){const v=nr(SV,t,used,R);if(v){used.add(v.s.id);c1.push(itm(v))}}
 /* Кейс 2: 10 разных AWP от минимальной цены до ₴1000 */
@@ -114,31 +115,33 @@ const V2=vars(s=>s.weapon&&s.weapon.name=='AWP').filter(v=>v.p<=1000),c2=[],mn=V
 for(const t of geo(Math.max(1,mn),1000,10)){const v=nr(V2,t,used,R);if(v){used.add(v.s.id);c2.push(itm(v))}}
 return[mkCase('Первый',25,CI[0],c1,.5),mkCase('Мечта авапера',67,CI[1],c2,.5)]}
 function pick(c){let r=Math.random()*c.tot,i=0;while(i<c.pool.length-1&&r>=c.ws[i]){r-=c.ws[i];i++}const x=c.pool[i];return{n:x.n,im:x.im,r:x.r,w:x.w,p:x.p}}
-const ab=w=>w.split(/[ -]/).map(a=>a[0]).join('');
-const card=x=>{const p=x.n.split(' | ');return`<div class="it" style="--c:${RC[x.r]}"><em>${ab(x.w)}</em><img src="${img(x.im)}" loading="lazy" referrerpolicy="no-referrer" alt=""><small>${p[0]}</small><b>${p[1]||'Vanilla'}</b><i>${f(x.p)}</i></div>`};
+const ab=w=>WA[WN.indexOf(w)]||'';
+const card=x=>{const p=x.n.split(' | ');return`<div class="it" style="--c:${RC[x.r]}"><em title="${WR[WN.indexOf(x.w)]||''}">${ab(x.w)}</em><img src="${img(x.im)}" loading="lazy" referrerpolicy="no-referrer" alt=""><small>${p[0]}</small><b>${p[1]||'Обычный'}</b><i>${f(x.p)}</i></div>`};
 function t(m){const e=$('#t');e.textContent=m;e.classList.add('on');clearTimeout(t.h);t.h=setTimeout(()=>e.classList.remove('on'),2300)}
 const bal=()=>{const e=$('#bal');if(!e)return;e.textContent=f(S.bal)+(S.lock?' 🔒':'');e.title=S.lock?'Заблокировано до пополнения от ₴100':''};
 const TABS={cases:'📦 Кейсы',up:'⬆️ Апгрейд',inv:'🎒 Инвентарь'};
-function go(x){if(busy)return t('Дождитесь окончания');up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:''};tab=x;oc=-1;render()}
+function go(x){if(busy)return t('Дождитесь окончания');up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:'',k:'w',n:60};tab=x;oc=-1;render()}
 function home(){if(busy)return t('Дождитесь окончания');tab='cases';oc=-1;Q='';render();scrollTo(0,0)}
 function login(){if(!/^https?:$/.test(location.protocol))return t('Вход через Steam работает, когда сайт открыт по http(s), а не как файл');const r=location.origin+location.pathname,ns='http://specs.openid.net/auth/2.0';
 location.href='https://steamcommunity.com/openid/login?'+new URLSearchParams({'openid.ns':ns,'openid.mode':'checkid_setup','openid.return_to':r,'openid.realm':location.origin,'openid.identity':ns+'/identifier_select','openid.claimed_id':ns+'/identifier_select'})}
 function logout(){try{localStorage.removeItem('bc_id')}catch(e){}location.href=location.pathname}
 const nick=()=>S.nick||'Игрок '+ID.slice(-4);
 const ava=()=>{if(S.ava)return`<img class="av" src="${S.ava}" referrerpolicy="no-referrer" alt="" onerror="S.ava='';usr()">`;const h=+ID.slice(-3)%360;return`<span class="av" style="background:linear-gradient(135deg,hsl(${h} 12% 82%),hsl(${h} 10% 38%))">${nick()[0].toUpperCase()}</span>`};
-function rename(){const n=prompt('Ваш ник',nick());if(n&&n.trim()){S.nick=n.trim().slice(0,24);S.nc=1;save();usr()}}
+function rename(){const n=prompt('Ваш ник',nick());if(n&&n.trim()&&n.trim()!==nick()){S.nick=n.trim().slice(0,24);S.nc=1;save();usr()}}
 const IC=d=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 function usr(){if(!ID){$('#usr').innerHTML='<button class="btn sm" onclick="login()">Войти через Steam</button>';return}
 $('#usr').innerHTML=`<div class="uc">${ava()}<div class="un"><small>Привет,</small><b class="nk" title="Изменить ник" onclick="rename()">${nick()}</b></div><div class="bl"><small>На счете</small><b id="bal"></b></div><button class="ib" title="Пополнить баланс" onclick="topup()">${IC('<path d="M3 7a2 2 0 0 1 2-2h12v4"/><path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2"/><circle cx="16.5" cy="14.5" r="1.2"/>')}</button><button class="ib" title="Обновить профиль Steam" onclick="refProf()">${IC('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>')}</button><button class="ib" title="Выйти" onclick="logout()">${IC('<path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>')}</button></div>`;bal()}
 const PX=[u=>u,u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://corsproxy.io/?url='+encodeURIComponent(u),u=>'https://corsproxy.io/?'+encodeURIComponent(u),u=>'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(u),u=>'https://thingproxy.freeboard.io/fetch/'+u];
 async function ftx(u,ms){const c=new AbortController(),h=setTimeout(()=>c.abort(),ms||9000);try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw 0;return await r.text()}finally{clearTimeout(h)}}
 const pxl=(u,ok)=>Promise.any(PX.map(async p=>{const r=ok(await ftx(p(u)));if(!r)throw 0;return r}));
-const pXml=x=>{const d=new DOMParser().parseFromString(x,'text/xml'),n=d.querySelector('steamID'),a=d.querySelector('avatarFull');return n&&n.textContent.trim()?{n:n.textContent.trim(),a:a?a.textContent.trim():''}:null};
-const pMini=x=>{const d=new DOMParser().parseFromString(x,'text/html'),n=d.querySelector('.persona'),a=d.querySelector('.playersection_avatar img');return n&&n.textContent.trim()?{n:n.textContent.trim(),a:a?(a.getAttribute('src')||'').replace(/(_medium|_full)?\.jpg/,'_full.jpg'):''}:null};
-async function prof(){let r=null;
-try{r=await pxl('https://steamcommunity.com/profiles/'+ID+'?xml=1',pXml)}catch(e){}
-if(!r)try{r=await pxl('https://steamcommunity.com/miniprofile/'+(BigInt(ID)-76561197960265728n),pMini)}catch(e){}
-if(r){if(!S.nc)S.nick=r.n;if(r.a)S.ava=r.a;S.ps=1;save();usr();return 1}return 0}
+const pXml=x=>{const d=new DOMParser().parseFromString(x,'text/xml'),n=d.querySelector('steamID'),a=d.querySelector('avatarFull'),r={n:n?n.textContent.trim():'',a:a?a.textContent.trim():''};return r.n||r.a?r:null};
+const pMini=x=>{const d=new DOMParser().parseFromString(x,'text/html'),n=d.querySelector('.persona'),a=d.querySelector('.playersection_avatar img'),r={n:n?n.textContent.trim():'',a:a?(a.getAttribute('src')||'').replace(/(_medium|_full)?\.jpg/,'_full.jpg'):''};return r.n||r.a?r:null};
+const pHtml=x=>{const d=new DOMParser().parseFromString(x,'text/html'),n=d.querySelector('.actual_persona_name'),m=d.querySelector('meta[property="og:image"]'),r={n:n?n.textContent.trim():'',a:m?m.content:''};return r.n||r.a?r:null};
+async function prof(){let n='',a='';const gt=async(u,f)=>{try{const r=await pxl(u,f);n=n||r.n;a=a||r.a}catch(e){}};
+await gt('https://steamcommunity.com/profiles/'+ID+'?xml=1',pXml);
+if(!n||!a)await gt('https://steamcommunity.com/miniprofile/'+(BigInt(ID)-76561197960265728n),pMini);
+if(!n)await gt('https://steamcommunity.com/profiles/'+ID,pHtml);
+if(n||a){if(n&&!S.nc)S.nick=n;if(a)S.ava=a;if(n)S.ps=1;save();usr();return n?1:0}return 0}
 function refProf(){S.nc=0;t('Загружаю профиль Steam…');prof().then(ok=>t(ok?'Профиль Steam обновлён':'Не удалось получить профиль. Он должен быть открытым. Ник можно ввести вручную (клик по нику)'))}
 function can(c){if(S.lock){t('Стартовые ₴25 разблокируются после пополнения от ₴100');topup();return 0}if(S.bal<c){t('Недостаточно средств');return 0}return 1}
 function topup(){if(!ID){t('Сначала войдите через Steam');return login()}if($('#md'))return;const m=document.createElement('div');m.id='md';m.style.cssText='position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';
@@ -154,7 +157,7 @@ const cc=c=>`<div class="cc" onclick="oc=${CS.indexOf(c)};CF={q:'',r:0,n:120};re
 const clist=()=>{const q=Q.toLowerCase();return`<div class="cg">${CS.filter(c=>c.n.toLowerCase().includes(q)).map(cc).join('')||'Ничего не найдено'}</div>`};
 const sq=v=>{Q=v;$('#cl').innerHTML=clist()};
 const RG=[['Все',0,1e12],['до ₴100',0,100],['₴100–1000',100,1000],['₴1000–1600',1000,1600],['от ₴1600',1600,1e12]];let CF={q:'',r:0,n:120};
-function cfr(){const c=CS[oc];if(!c)return;if(!c.sorted)c.sorted=[...c.pool].sort((a,b)=>b.p-a.p);const q=CF.q.toLowerCase(),g=RG[CF.r],L=c.sorted.filter(x=>x.p>=g[1]&&x.p<g[2]&&x.n.toLowerCase().includes(q));
+function cfr(){const c=CS[oc];if(!c)return;if(!c.sorted)c.sorted=[...c.pool].sort((a,b)=>b.p-a.p);const q=CF.q.toLowerCase(),g=RG[CF.r],L=c.sorted.filter(x=>x.p>=g[1]&&x.p<g[2]&&(x.n+' '+(x.e||'')).toLowerCase().includes(q));
 $('#cts').innerHTML=L.slice(0,CF.n).map(x=>`<div class="c">${card(x)}</div>`).join('')||'<div class="ph2">Ничего не найдено</div>';
 $('#cm').innerHTML=L.length>CF.n?`<button class="btn alt" onclick="CF.n+=200;cfr()">Показать ещё (${L.length-CF.n})</button>`:'';$('#cn').textContent=L.length.toLocaleString('uk-UA')}
 const V={
@@ -163,20 +166,20 @@ const c=CS[oc];return`<button class="chip" onclick="oc=-1;render()">← Все �
 <h3>Содержимое кейса · <span id="cn"></span> предметов</h3><div class="flt"><input placeholder="Поиск по предметам" value="${CF.q}" oninput="CF.q=this.value;CF.n=120;cfr()">${RG.map((g,i)=>`<button class="chip ${i==CF.r?'on':''}" onclick="CF.r=${i};CF.n=120;render()">${g[0]}</button>`).join('')}</div><div class="list" id="cts"></div><div class="row" id="cm"></div>`},
 up:()=>`<h2 class="ut">МОДЕРНИЗАЦИЯ ОРУЖИЯ</h2><div id="u1">${u1()}</div>
 <div class="ug"><div class="up-p slid"><span>Добавить баланс</span><input type="range" min="0" max="${Math.floor(S.bal)}" value="${up.add}" oninput="up.add=+this.value;ref()"><b id="sv">${f(up.add)}</b></div><div class="c"><button class="btn big" onclick="upg()">⬆ ПРОКАЧАТЬ</button></div><div class="row mlt">${[2,5,10].map(m=>`<button class="chip" onclick="setM(${m})">x${m}</button>`).join('')}${[30,50,75].map(p=>`<button class="chip" onclick="setP(${p})">${p}%</button>`).join('')}<button class="chip" onclick="shuf()">🔀</button></div></div>
-<div class="lists"><div class="up-p"><h4>Мои предметы (${S.inv.length} шт)</h4><div class="list scroll" id="mi">${mil()}</div></div><div class="up-p"><div class="flt"><b>Выберите предмет</b><select onchange="up.s=this.value;ref()"><option value="a">Цена ↑</option><option value="d" ${up.s=='d'?'selected':''}>Цена ↓</option></select><input type="number" placeholder="от ₴" value="${up.lo}" oninput="up.lo=this.value;ref()"><input type="number" placeholder="до ₴" value="${up.hi}" oninput="up.hi=this.value;ref()"><input placeholder="Поиск" value="${up.q}" oninput="up.q=this.value;ref()"></div><div class="list scroll" id="tg">${tgl()}</div></div></div>`,
+<div class="lists"><div class="up-p"><h4>Мои предметы (${S.inv.length} шт)</h4><div class="list scroll" id="mi">${mil()}</div></div><div class="up-p"><div class="flt"><b>Выберите предмет</b><select onchange="up.k=this.value;up.n=60;ref()">${[['w','Скины'],['k','Ножи и перчатки'],['t','Стикеры'],['','Всё']].map(o=>`<option value="${o[0]}" ${up.k==o[0]?'selected':''}>${o[1]}</option>`).join('')}</select><select onchange="up.s=this.value;up.n=60;ref()"><option value="a">Цена ↑</option><option value="d" ${up.s=='d'?'selected':''}>Цена ↓</option></select><input type="number" placeholder="от ₴" value="${up.lo}" oninput="up.lo=this.value;up.n=60;ref()"><input type="number" placeholder="до ₴" value="${up.hi}" oninput="up.hi=this.value;up.n=60;ref()"><input placeholder="Поиск" value="${up.q}" oninput="up.q=this.value;up.n=60;ref()"></div><div class="list scroll" id="tg">${tgl()}</div></div></div>`,
 inv:()=>`<div class="pan"><h3>Инвентарь · ${f(S.inv.reduce((s,x)=>s+x.p,0))} ${S.inv.length?'<button class="btn sm" onclick="sellAll()">Продать всё</button>':''}</h3><div class="list">${S.inv.length?S.inv.map((x,i)=>`<div class="c">${card(x)}<button class="btn sm" onclick="sell(${i})">Продать</button></div>`).join(''):'<p style="color:var(--mu)">Пока пусто.</p>'}</div></div>`};
 const TK=Array.from({length:72},(_,i)=>{const a=i*5*Math.PI/180,l=i%6==0?10:5,s=Math.sin(a),c=Math.cos(a);return`<line x1="${150+s*118}" y1="${150-c*118}" x2="${150+s*(118+l)}" y2="${150-c*(118+l)}"/>`}).join('');
 const stake=()=>up.sel.reduce((s,i)=>s+(S.inv[i]?S.inv[i].p:0),0)+Math.min(up.add,S.bal);
 const chn=()=>{const s=stake();return up.tg&&s>0?Math.min(75,s/up.tg.p*95):0};
-function cat(){if(!CAT)CAT=Object.values(SK).filter(s=>!skipSt(s)).map(s=>mk(s,tierS(s),dw(s))).sort((a,b)=>a.p-b.p);return CAT}
+function cat(){if(!CAT){CAT=[];for(const s of Object.values(SK)){if(skipSt(s))continue;const a=wl(s);for(const w of a.length?a:['']){if(pm&&!usd(hn(s,w)))continue;CAT.push(mk(s,tierS(s),w))}}CAT.sort((x,y)=>x.p-y.p)}return CAT}
 function u1(){const ch=chn(),L=2*Math.PI*98;
 return`<div class="ug"><div class="up-p c"><div class="hd">Выберите до 6 предметов на апгрейд</div><div class="sg">${up.sel.length?up.sel.map(i=>`<div class="pick" onclick="tog(${i})">${card(S.inv[i])}</div>`).join(''):'<div class="ph">Выберите предметы ниже или добавьте баланс</div>'}</div><div class="sm">Ставка: <b>${f(stake())}</b></div></div>
 <div class="dial"><svg viewBox="0 0 300 300"><g stroke="rgba(255,255,255,.28)" stroke-width="2">${TK}</g><circle cx="150" cy="150" r="98" fill="none" stroke="#262932" stroke-width="16"/><circle cx="150" cy="150" r="98" fill="none" stroke="#e9ebf1" stroke-width="16" stroke-dasharray="${ch/100*L} ${L}" transform="rotate(-90 150 150)" style="filter:drop-shadow(0 0 6px #fff)"/><defs><radialGradient id="dg"><stop offset="0" stop-color="#2d2f39"/><stop offset="1" stop-color="#121317"/></radialGradient></defs><circle cx="150" cy="150" r="78" fill="url(#dg)"/><g id="pt"><path d="M150 68L139 42H161Z" fill="#fff" style="filter:drop-shadow(0 0 5px #fff)"/></g><text x="150" y="152" fill="#fff" font-size="30" font-weight="800" text-anchor="middle">${ch.toFixed(2)}%</text><text x="150" y="174" fill="#8d93a1" font-size="12" text-anchor="middle">шанс</text></svg></div>
 <div class="up-p c"><div class="hd">Выберите оружие, которое хотите получить</div>${up.tg?`<div class="sg one">${card(up.tg)}</div><div class="sm">Цена: <b>${f(up.tg.p)}</b></div>`:'<div class="ph">Выберите предмет из каталога или нажмите множитель</div>'}</div></div>`}
 const mil=()=>S.inv.map((x,i)=>`<div class="pick ${up.sel.includes(i)?'sel':''}" onclick="tog(${i})">${card(x)}</div>`).join('')||'<div class="ph">Нет предметов. Откройте любой кейс</div>';
 function tgl(){const q=up.q.toLowerCase(),s=stake(),lo=up.lo!==''?+up.lo:(s>0?s*1.01:0),hi=up.hi!==''?+up.hi:1e12;
-const L=cat().filter(x=>x.p>=lo&&x.p<=hi&&x.n.toLowerCase().includes(q));if(up.s=='d')L.reverse();window.TL=L.slice(0,60);
-return TL.map((x,i)=>`<div class="pick ${up.tg&&up.tg.n==x.n&&up.tg.w==x.w?'sel':''}" onclick="up.tg=TL[${i}];ref()">${card(x)}</div>`).join('')||'<div class="ph">Ничего не найдено</div>'}
+const L=cat().filter(x=>(!up.k||x.k==up.k)&&x.p>=lo&&x.p<=hi&&((x.n+' '+(x.e||'')).toLowerCase().includes(q)));if(up.s=='d')L.reverse();const m=up.n||60;window.TL=L.slice(0,m);
+return(TL.map((x,i)=>`<div class="pick ${up.tg&&up.tg.n==x.n&&up.tg.w==x.w?'sel':''}" onclick="up.tg=TL[${i}];ref()">${card(x)}</div>`).join('')||'<div class="ph">Ничего не найдено</div>')+(L.length>m?`<div class="row" style="width:100%"><button class="btn alt sm" onclick="up.n=${m}+60;ref()">Показать ещё (${L.length-m})</button></div>`:'')}
 function ref(){if(tab!='up'||busy)return;$('#u1').innerHTML=u1();$('#mi').innerHTML=mil();$('#tg').innerHTML=tgl();$('#sv').textContent=f(up.add)}
 function tog(i){if(busy)return;const k=up.sel.indexOf(i);if(k>=0)up.sel.splice(k,1);else if(up.sel.length<6)up.sel.push(i);else t('Максимум 6 предметов');ref()}
 function near(w){let b=null,d=1e18;for(const x of cat()){const k=Math.abs(x.p-w);if(k<d){d=k;b=x}}return b}
@@ -186,7 +189,7 @@ function shuf(){if(busy)return;const s=stake();if(!(s>0))return t('Сначал�
 function upg(){if(busy)return;const s=stake(),ch=chn();if(!(s>0))return t('Выберите предметы или добавьте баланс');if(!up.tg)return t('Выберите оружие, которое хотите получить');if(ch<1)return t('Шанс меньше 1%: выберите предмет дешевле или увеличьте ставку');
 const add=Math.min(up.add,S.bal);if(add>0&&!can(add))return;busy=1;S.bal-=add;bal();
 const a=Math.random()*360,win=a<ch*3.6;ang+=1440+((a-ang%360)+360)%360;$('#pt').style.transform=`rotate(${ang}deg)`;
-setTimeout(()=>{[...up.sel].sort((x,y)=>y-x).forEach(i=>S.inv.splice(i,1));const g=up.tg;if(win){S.inv.push({...g});t('Успех! '+g.n)}else t('Не повезло, ставка сгорела');up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:''};ang=0;busy=0;save();render()},4500)}
+setTimeout(()=>{[...up.sel].sort((x,y)=>y-x).forEach(i=>S.inv.splice(i,1));const g=up.tg;if(win){S.inv.push({...g});t('Успех! '+g.n)}else t('Не повезло, ставка сгорела');up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:'',k:'w',n:60};ang=0;busy=0;save();render()},4500)}
 function render(){$('#side').innerHTML='<div class="logo" role="button" tabindex="0" onclick="home()" onkeydown="if(event.key==\'Enter\')home()">BLACKCASE</div>'+Object.keys(TABS).map(k=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${TABS[k]}</button>`).join('');$('#v').innerHTML=V[tab]();usr();if(tab=='cases'&&oc>=0)cfr()}
 
 /* ===== Игровая логика ===== */
@@ -198,11 +201,18 @@ $('#roll').innerHTML=`<div class="rl"><div class="tr" id="tr">${s.map(x=>card(x)
 const tr=$('#tr');tr.getBoundingClientRect();const W=tr.parentElement.clientWidth,iw=tr.children[0].offsetWidth+10;
 tr.style.transform=`translateX(${-(46*iw+iw/2-W/2+(Math.random()*iw*.6-iw*.3))}px)`;tr.addEventListener('transitionend',done,{once:true})}
 /* ===== Загрузка ===== */
+async function getRate(){try{const d=await fetch(NBU).then(r=>r.json()),v=+d[0].rate;if(v>0){RATE=v;return}}catch(e){}try{const d=await fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()),v=+d.rates.UAH;if(v>0)RATE=v}catch(e){}}
+const okPr=o=>{let n=0;for(const k in o){const p=o[k],q=p&&p.steam||{};if(+q.last_24h||+q.last_7d||+q.last_30d||+q.last_90d||(p&&p.skinport&&+p.skinport.starting_at)||(p&&p.csgotrader&&+p.csgotrader.price))if(++n>500)return 1}return 0};
+async function loadPrices(){const ac=[],gx=(u,cv)=>{const c=new AbortController();ac.push(c);return fetch(u,{signal:c.signal}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{d=cv?cv(d):d;if(!d||!okPr(d))throw 0;return d})};
+const sp=d=>{if(!Array.isArray(d))throw 0;const o={};for(const x of d){const v=x.median_price||x.min_price||x.suggested_price;if(v)o[x.market_hash_name]={skinport:{starting_at:v}}}return o};
+const d=await Promise.any([gx(PRICES),gx('https://corsproxy.io/?url='+encodeURIComponent(PRICES)),gx('https://raw.githubusercontent.com/ByMykel/counter-strike-price-tracker/main/static/prices/latest.json'),gx('https://api.skinport.com/v1/items?app_id=730&currency=USD',sp)]);ac.forEach(c=>c.abort());return d}
 async function init(){const L=$('#lt');
 try{L.textContent='Загружаю каталог скинов…';
-const [sk,st]=await Promise.all([fetch(SRC+'skins.json').then(r=>r.json()),fetch(SRC+'stickers.json').then(r=>r.json()).catch(()=>[])]);
-sk.forEach(s=>SK[s.id]=s);st.forEach(s=>{if(s.image){s.st=1;s.category={name:'Sticker'};SK[s.id]=s}});L.textContent='Загружаю цены и курс гривны…';
-await Promise.allSettled([fetch(NBU).then(r=>r.json()).then(d=>{RATE=+d[0].rate||RATE}),fetch(PRICES).then(r=>r.json()).then(d=>{PR=d;pm=1})]);
+const RU=SRC.replace('/en/','/ru/'),jf=u=>fetch(u).then(r=>r.json());
+const [sk,st,skr,str]=await Promise.all([jf(SRC+'skins.json'),jf(SRC+'stickers.json').catch(()=>[]),jf(RU+'skins.json').catch(()=>[]),jf(RU+'stickers.json').catch(()=>[])]);
+const ru={};[...skr,...str].forEach(x=>{if(x&&x.id&&x.name)ru[x.id]=x.name});
+sk.forEach(s=>{s.ru=ru[s.id];SK[s.id]=s});st.forEach(s=>{if(s.image){s.ru=ru[s.id];s.st=1;s.category={name:'Sticker'};SK[s.id]=s}});L.textContent='Загружаю цены и курс гривны…';
+await Promise.allSettled([getRate(),loadPrices().then(d=>{PR=d;pm=1})]);
 stOK=st.length&&pm&&st.filter(s=>usd(s.name)).length>=50?1:0;CS=mkCases();
 for(let i=0;i<14;i++)addDrop();setInterval(addDrop,2500);render();$('#ld').remove();if(ID&&!S.ps)prof().then(ok=>{if(!ok)t('Профиль Steam не загрузился: нажмите ⟳ рядом с ником, чтобы повторить')});
 t(`${Object.keys(SK).length} предметов · ${CS.length} кейсов · курс ${RATE.toFixed(2)} ₴`+(pm?'':' · цены оценочные'))
