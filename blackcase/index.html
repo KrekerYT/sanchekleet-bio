@@ -109,7 +109,7 @@ if(!S.v3){S.v3=1;S.nc=0;S.ps=0;if(/^Игрок \d{4}$/.test(S.nick||''))S.nick='
 S.stt=S.stt||{c:0,u:0,s:0,b:null};S.log=S.log||[];S.uid=S.uid||Date.now();S.inv.forEach(x=>{if(!x.u)x.u=++S.uid;if(!x.t)x.t=0});
 const save=()=>{try{localStorage.setItem('bc4_'+(ID||'guest'),JSON.stringify(S))}catch(e){}};
 function F0(k){return{sb:'p',s:'a',lo:'',hi:'',q:'',k:k||'',n:60}}
-function U0(){return{sel:[],add:0,tg:null,tf:F0('w'),mf:F0()}}
+function U0(){return{sel:[],add:0,tg:null,tf:F0(''),mf:F0()}}
 let INV=Object.assign(F0(),{sb:'t',s:'d',f:'all'}),cnt=1,um=S.um==null?1:S.um;
 const f=v=>'₴'+(v>=1000?Math.round(v).toLocaleString('uk-UA'):v.toFixed(2)),img=u=>u+'/200fx150f';
 const tierS=s=>s.st?0:/Knives|Gloves/.test(s.category.name)?4:(TM[s.rarity.name]??0);
@@ -301,24 +301,29 @@ anim(D,p=>{const e=1-Math.pow(1-p,4.2);trs.forEach((tr,k)=>tr.style.transform=`t
 /* ===== Загрузка ===== */
 async function getRate(){try{const d=await fetch(NBU).then(r=>r.json()),v=+d[0].rate;if(v>0){RATE=v;return}}catch(e){}try{const d=await fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()),v=+d.rates.UAH;if(v>0)RATE=v}catch(e){}}
 const okPr=o=>{let n=0;for(const k in o){const p=o[k];if(p&&typeof p=='object'&&pv(p)&&++n>500)return 1}return 0};
-const BP='https://csgobackpack.net/api/GetItemsList/v2/?no_details=1&currency=USD',bp=d=>{const L=d&&d.items_list;if(!L)throw 0;const o={};for(const k in L){const x=L[k],q=x&&x.price;if(!q)continue;const v=q['24_hours']||q['7_days']||q['30_days']||q['all_time']||{},m=+v.median||+v.average;if(m>0)o[x.name||k]={steam:{last_24h:m}}}return o};
-async function loadPrices(){const ac=[],gx=(u,cv)=>{const c=new AbortController();ac.push(c);return fetch(u,{signal:c.signal}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{d=cv?cv(d):d;if(!d||!okPr(d))throw 0;return d})};
+const API='',BP='https://csgobackpack.net/api/GetItemsList/v2/?no_details=1&currency=USD',bp=d=>{const L=d&&d.items_list;if(!L)throw 0;const o={};for(const k in L){const x=L[k],q=x&&x.price;if(!q)continue;const v=q['24_hours']||q['7_days']||q['30_days']||q['all_time']||{},m=+v.median||+v.average;if(m>0)o[x.name||k]={steam:{last_24h:m}}}return o};
+async function loadPrices(more){const ac=[],gx=(u,cv)=>{const c=new AbortController();ac.push(c);return fetch(u,{signal:c.signal}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{d=cv?cv(d):d;if(!d||!okPr(d))throw 0;return d})};
 const sp=d=>{if(!Array.isArray(d))throw 0;const o={};for(const x of d){const v=x.median_price||x.min_price||x.suggested_price;if(v)o[x.market_hash_name]={skinport:{starting_at:v}}}return o};
-const P=[gx(PRICES),...PX.slice(1).map(p=>gx(p(PRICES))),...PX.map(p=>gx(p(BP),bp)),gx('https://raw.githubusercontent.com/ByMykel/counter-strike-price-tracker/main/static/prices/latest.json'),gx('https://api.skinport.com/v1/items?app_id=730&currency=USD',sp)],res=[];
-await new Promise(done=>{let n=P.length,tm;const g=setTimeout(done,25000),end=()=>{if(--n==0){clearTimeout(g);done()}};P.forEach(x=>x.then(d=>{res.push(d);if(!tm)tm=setTimeout(done,7000)},()=>{}).then(end))});
-ac.forEach(c=>c.abort());if(!res.length)throw 0;
-const hs=q=>q&&(+q.last_24h||+q.last_7d||+q.last_30d||+q.last_90d),out={};
-for(const d of res)for(const n in d){const b=d[n],a=out[n];if(!a){out[n]={...b};continue}for(const k in b){if(!a[k])a[k]=b[k];else if(k=='steam'&&!hs(a.steam)&&hs(b.steam))a.steam=b.steam}}
-return out}
+const P=[...(API?[gx(API,cp)]:[]),gx(PRICES),...PX.slice(1).map(p=>gx(p(PRICES))),...PX.map(p=>gx(p(BP),bp)),gx('https://raw.githubusercontent.com/ByMykel/counter-strike-price-tracker/main/static/prices/latest.json'),gx('https://api.skinport.com/v1/items?app_id=730&currency=USD',sp)],res=[];
+const hs=q=>q&&(+q.last_24h||+q.last_7d||+q.last_30d||+q.last_90d),mg=()=>{const out={};for(const d of res)for(const n in d){const b=d[n],a=out[n];if(!a){out[n]={...b};continue}for(const k in b){if(!a[k])a[k]=b[k];else if(k=='steam'&&!hs(a.steam)&&hs(b.steam))a.steam=b.steam}}return out};
+return new Promise((ok,no)=>{let n=P.length,sent=0,tm;const fin=()=>{if(sent)return;sent=1;res.length?ok(mg()):no(0)},g=setTimeout(fin,25000);
+P.forEach((x,i)=>x.then(d=>{res.push(d);if(sent){more&&more(mg());return}if(API&&i==0)fin();else if(!tm)tm=setTimeout(fin,2500)},()=>{}).then(()=>{if(--n==0){clearTimeout(g);fin()}}))})}
+const toPR=c=>{const o={};for(const k in c)o[k]={steam:{last_24h:c[k]}};return o},toC=o=>{const c={};for(const k in o){const v=pv(o[k]);if(v)c[k]=+v.toFixed(2)}return c},cp=d=>{if(!d||!d.p)throw 0;return toPR(d.p)};
+function applyPr(d){PR=d;pm=1;CAT=null;try{localStorage.setItem('bc_pc',JSON.stringify({t:Date.now(),d:toC(d)}))}catch(e){}if(oc<0&&!busy&&CS.length)try{CS=mkCases()}catch(e){}}
+async function refreshPrices(){try{await getRate();const d=await loadPrices(applyPr);applyPr(d)}catch(e){}}
+async function cj(u){let c;try{c=await caches.open('bc1')}catch(e){}const net=()=>fetch(u).then(r=>{if(!r.ok)throw 0;if(c)try{c.put(u,r.clone())}catch(e){}return r.json()});if(c){try{const m=await c.match(u);if(m){net().catch(()=>{});return m.json()}}catch(e){}}return net()}
 async function init(){const L=$('#lt');
 try{L.textContent='Загружаю каталог скинов…';
-const RU=SRC.replace('/en/','/ru/'),jf=u=>fetch(u).then(r=>r.json());
-const [sk,st,skr,str]=await Promise.all([jf(SRC+'skins.json'),jf(SRC+'stickers.json').catch(()=>[]),jf(RU+'skins.json').catch(()=>[]),jf(RU+'stickers.json').catch(()=>[])]);
+let pc=null;try{pc=JSON.parse(localStorage.getItem('bc_pc'))}catch(e){}
+const useC=pc&&pc.d&&Object.keys(pc.d).length>500,RU=SRC.replace('/en/','/ru/');
+if(useC){PR=toPR(pc.d);pm=1}
+const pP=useC?Promise.resolve():loadPrices(applyPr).then(d=>{PR=d;pm=1;CAT=null}).catch(()=>{});
+const [sk,st,skr,str]=(await Promise.all([cj(SRC+'skins.json'),cj(SRC+'stickers.json').catch(()=>[]),cj(RU+'skins.json').catch(()=>[]),cj(RU+'stickers.json').catch(()=>[]),pP,getRate()])).slice(0,4);
 const ru={};[...skr,...str].forEach(x=>{if(x&&x.id&&x.name)ru[x.id]=x.name});
-sk.forEach(s=>{s.ru=ru[s.id];SK[s.id]=s});st.forEach(s=>{if(s.image){s.ru=ru[s.id];s.st=1;s.category={name:'Sticker'};SK[s.id]=s}});L.textContent='Загружаю цены и курс гривны…';
-await Promise.allSettled([getRate(),loadPrices().then(d=>{PR=d;pm=1})]);
+sk.forEach(s=>{s.ru=ru[s.id];SK[s.id]=s});st.forEach(s=>{if(s.image){s.ru=ru[s.id];s.st=1;s.category={name:'Sticker'};SK[s.id]=s}});
 stOK=st.length&&pm&&st.filter(s=>usd(s.name)).length>=50?1:0;CS=mkCases();
 for(let i=0;i<14;i++)addDrop();setInterval(addDrop,2500);render();$('#ld').remove();if(ID&&!S.ps)prof().then(ok=>{if(!ok)t('Профиль Steam не загрузился: нажмите ⟳ рядом с ником, чтобы повторить')});
+if(useC)setTimeout(refreshPrices,1500);setInterval(refreshPrices,6e5);
 t(`${Object.keys(SK).length} предметов · ${CS.length} кейсов · курс ${RATE.toFixed(2)} ₴`+(pm?'':' · ЦЕНЫ НЕ ЗАГРУЗИЛИСЬ, показаны оценочные'))
 }catch(e){L.innerHTML='Не удалось загрузить данные. Откройте файл в браузере с доступом в интернет или разместите его на своём хостинге.<br><br><button class="btn" onclick="location.reload()">Повторить</button>'}}
 init();
