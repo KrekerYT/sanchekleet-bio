@@ -32,9 +32,9 @@ input,select{font:inherit;color:#fff;background:var(--p2);border:1px solid var(-
 .list{display:flex;flex-wrap:wrap}.pick{cursor:pointer}.sel .it{outline:2px solid #fff;box-shadow:0 0 22px var(--c)}.scroll{max-height:380px;overflow:auto}
 .rl{position:relative;overflow:hidden;margin:12px 0;border-radius:12px;background:#080a14;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
 .rl::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 18px 3px rgba(255,255,255,.8);z-index:2}
-.tr{display:flex;transition:transform 5.5s cubic-bezier(.08,.6,0,1)}.res{margin:10px 0}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 0}
+.tr{display:flex;will-change:transform}.res{margin:10px 0}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 0}
 .hero{display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap}.hero img{width:220px;max-width:60vw;aspect-ratio:1;object-fit:cover;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}svg.ring{max-width:260px;width:100%}#pt{transition:transform 4.2s cubic-bezier(.1,.7,.1,1);transform-origin:150px 150px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}svg.ring{max-width:260px;width:100%}#pt{transform-origin:150px 150px}
 .lob{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;padding:12px 16px;background:var(--p2);border-radius:12px;flex-wrap:wrap}
 .lob img{height:44px}.dot{display:inline-block;width:14px;height:14px;border-radius:50%;background:#353741;margin:0 2px}.dot.f{background:var(--gr)}
 .bcols{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:10px}.bcols .pan{padding:10px;margin:0}.bcols .it{width:100%;margin:4px 0}.win{box-shadow:0 0 36px rgba(255,255,255,.4);border-color:#fff}
@@ -51,7 +51,37 @@ input,select{font:inherit;color:#fff;background:var(--p2);border:1px solid var(-
 .flt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}.flt input,.flt select{width:auto;flex:1;min-width:70px;margin:0;padding:7px 10px}.flt b{flex:100%;color:var(--mu)}
 @media(max-width:900px){.ug,.lists{grid-template-columns:1fr}.mlt{justify-content:center}.uc small:first-child{display:none}}
 @media(max-width:800px){.app{flex-direction:column}aside{width:100%;height:auto;position:static;flex-direction:row;overflow-x:auto;padding:8px}.logo{padding:8px 10px}aside button{white-space:nowrap}.bcols .it{font-size:.58rem}.bcols .it img{width:70px;height:52px}.it{width:130px}}
-@media(prefers-reduced-motion:reduce){.tr,#pt{transition-duration:.01s}}
+.ch{text-align:center;margin:18px 0 6px}.ch small{display:block;color:var(--mu);letter-spacing:3px;font-size:.7rem;font-weight:700}.ch h2{margin:4px 0;font-size:2rem;letter-spacing:1px}
+.cnt{display:flex;gap:6px;align-items:center;justify-content:center;margin:18px 0 14px;color:var(--mu);flex-wrap:wrap}
+.cnt b{min-width:38px;text-align:center;padding:8px;border:1px solid transparent;color:#fff;cursor:pointer;font-size:1.05rem;transition:.15s;user-select:none}.cnt b:hover{background:var(--p2)}.cnt b.on{border-color:#fff;background:var(--p2);box-shadow:0 0 14px rgba(255,255,255,.18)}
+.ob{font:inherit;font-weight:800;color:#fff;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.65);padding:15px 28px;cursor:pointer;letter-spacing:.5px;transition:.2s}.ob:hover{background:var(--ac);color:#111}
+.rl.s .it{width:100px;font-size:.58rem;margin:3px 5px}.rl.s .it img{width:76px;height:54px}.rl.s{margin:6px 0}
+.snd{margin-top:auto}
+.um{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}.umh{color:var(--mu);font-size:.7rem;text-align:center;min-height:2.2em;margin-bottom:6px}
+.pt2{text-align:center;letter-spacing:3px;font-size:1.5rem;margin:6px 0 16px}
+.pf{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:14px;margin-bottom:26px}@media(max-width:900px){.pf{grid-template-columns:1fr}}
+.pfb{background:linear-gradient(160deg,var(--p2),var(--p));border:1px solid var(--b);padding:16px;min-width:0}
+.pfb .tl{font-weight:800;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase}.pfb .tl small{display:block;color:var(--mu);font-weight:500;letter-spacing:0;text-transform:none;font-size:.72rem}
+.stt{display:flex;gap:22px;flex-wrap:wrap}.stt div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:1.4rem;font-weight:800}.stt small{color:var(--mu);font-size:.66rem;font-weight:500;text-align:center}
+.pcn{text-align:center}.pcn .av{width:84px;height:84px;margin:0 auto 8px;font-size:2rem}.pcn b.nm{font-size:1.1rem}
+.pcn .bz{display:flex;justify-content:center;gap:14px;align-items:center;margin:10px 0 14px;font-size:1.3rem;font-weight:800;color:var(--gr)}
+.bd1{display:flex;gap:12px;align-items:center;justify-content:space-between}.bd1 img{width:120px;max-width:45%;object-fit:contain;filter:drop-shadow(0 4px 8px #000a)}.bd1 p{margin:2px 0}.bd1 .pz{color:#ee6f3c;font-weight:800}
+.fs{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
+.drops{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.dc{border:1px solid #29313f;background:var(--p);position:relative;min-width:0}
+.dc .bd{height:168px;position:relative;padding-top:8px;background:radial-gradient(ellipse at 50% 38%,color-mix(in srgb,var(--c) 38%,#10131c),#0c0e15 80%)}
+.dc .bd img{display:block;margin:0 auto;width:136px;height:100px;object-fit:contain;filter:brightness(1.15) drop-shadow(0 4px 8px #000a)}
+.dc .tt{position:absolute;left:8px;bottom:5px;width:calc(100% - 16px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:.86rem;line-height:1.25}.dc .tt span{font-size:.75rem;color:#c5cad8}
+.dc .pp{position:absolute;left:0;bottom:44px;background:rgba(43,51,66,.85);padding:2px 8px;font-weight:700;color:#ee6f3c;font-size:.9rem}
+.dc .si{position:absolute;top:8px;left:8px;width:26px;height:26px;display:grid;place-items:center;font-size:.8rem;border-radius:50%;background:rgba(0,0,0,.5);cursor:help;z-index:2}
+.dc em{position:absolute;top:10px;right:8px;font-style:normal;font-size:.62rem;color:#cdd3f3}
+.dc .ft{display:flex;border-top:3px solid var(--c)}
+.dc .ft a{flex:1;height:34px;display:grid;place-items:center;border-right:1px solid #2d3343;cursor:pointer;color:#e7e9f0;transition:.15s;user-select:none;font-weight:800}.dc .ft a:last-child{border:0}.dc .ft a:hover{background:rgba(12,12,14,.92)}.dc .ft a:hover svg{transform:scale(1.15)}
+.dc .ft a.d{cursor:not-allowed;color:#3b4558}.dc .ft a.d:hover{background:none}.dc .ft a.d:hover svg{transform:none}.dc .ft a.h{cursor:help;color:#ababab}
+.dc.gone .bd{filter:grayscale(.55);opacity:.72}
+.um .chip{padding:6px 10px;font-size:.8rem}
+@media(max-width:800px){.snd{margin:0 0 0 auto}}
+.btn.sm:not(.alt){color:#111;margin-top:0}.btn.alt.sm{color:#fff}
 </style>
 </head>
 <body>
@@ -76,10 +106,11 @@ let ID='';try{ID=localStorage.getItem('bc_id')||''}catch(e){}
 let SK={},CS=[],PR={},RATE=41.5,CAT=null,pm=0,S={bal:25,lock:1,inv:[]},tab='cases',oc=-1,Q='',busy=0,ang=0,fast=0,up=U0();
 try{const d=JSON.parse(localStorage.getItem('bc4_'+(ID||'guest')));if(d&&d.inv)S=d}catch(e){}
 if(!S.v3){S.v3=1;S.nc=0;S.ps=0;if(/^Игрок \d{4}$/.test(S.nick||''))S.nick=''}
+S.stt=S.stt||{c:0,u:0,s:0,b:null};S.log=S.log||[];S.uid=S.uid||Date.now();S.inv.forEach(x=>{if(!x.u)x.u=++S.uid;if(!x.t)x.t=0});
 const save=()=>{try{localStorage.setItem('bc4_'+(ID||'guest'),JSON.stringify(S))}catch(e){}};
 function F0(k){return{sb:'p',s:'a',lo:'',hi:'',q:'',k:k||'',n:60}}
 function U0(){return{sel:[],add:0,tg:null,tf:F0('w'),mf:F0()}}
-let INV=F0();
+let INV=Object.assign(F0(),{sb:'t',s:'d',f:'all'}),cnt=1,um=S.um==null?1:S.um;
 const f=v=>'₴'+(v>=1000?Math.round(v).toLocaleString('uk-UA'):v.toFixed(2)),img=u=>u+'/200fx150f';
 const tierS=s=>s.st?0:/Knives|Gloves/.test(s.category.name)?4:(TM[s.rarity.name]??0);
 function usd(h){const p=PR[h];if(!p)return null;const s=p.steam||{};return +s.last_24h||+s.last_7d||+s.last_30d||+s.last_90d||(p.skinport&&+p.skinport.starting_at)||(p.csgotrader&&+p.csgotrader.price)||null}
@@ -150,12 +181,54 @@ function can(c){if(S.lock){t('Стартовые ₴25 разблокируют�
 function topup(){if(!ID){t('Сначала войдите через Steam');return login()}if($('#md'))return;const m=document.createElement('div');m.id='md';m.style.cssText='position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';
 m.innerHTML=`<div class="pan c" style="max-width:380px;width:100%;margin:0"><h3>Пополнение баланса</h3><p style="color:var(--mu)">Минимум ₴100. После первого пополнения разблокируются стартовые ₴25. Демо-режим: реальные платежи не подключены.</p><input id="am" type="number" min="100" step="50" value="100"><div class="row">${[100,250,500,1000].map(v=>`<button class="chip" onclick="$('#am').value=${v}">${v}</button>`).join('')}</div><div class="row"><button class="btn" onclick="dep()">Пополнить</button><button class="btn alt" onclick="$('#md').remove()">Отмена</button></div></div>`;document.body.appendChild(m)}
 function dep(){const v=+$('#am').value;if(!(v>=100))return t('Минимальная сумма ₴100');S.bal+=v;t(S.lock?'Пополнено, ₴25 разблокированы':'Баланс пополнен');S.lock=0;save();bal();$('#md').remove()}
-function ilist(){return flist(S.inv.map((x,i)=>({...x,_i:i})),INV)}
-function rinv(){if(tab!='inv')return;const L=ilist(),m=INV.n,tot=L.reduce((a,x)=>a+x.p,0),fl=INV.q||INV.lo!==''||INV.hi!=='';
-$('#ih').innerHTML=`Инвентарь · ${S.inv.length} шт · ${f(S.inv.reduce((a,x)=>a+x.p,0))} ${L.length?`<button class="btn sm" onclick="sellF()">${fl?'Продать найденные ('+L.length+') за '+f(tot):'Продать всё'}</button>`:''}`;
-$('#il').innerHTML=(L.slice(0,m).map(x=>`<div class="c">${card(x)}<button class="btn sm" onclick="sell(${x._i})">Продать</button></div>`).join('')||'<p style="color:var(--mu)">'+(S.inv.length?'Ничего не найдено':'Пока пусто.')+'</p>')+more('inv',L.length,m)}
-function sellF(){const L=ilist();if(!L.length)return;const tot=L.reduce((a,x)=>a+x.p,0);if(!confirm('Продать '+L.length+' предметов за '+f(tot)+'?'))return;const ix=new Set(L.map(x=>x._i));S.bal+=tot;S.inv=S.inv.filter((_,i)=>!ix.has(i));save();bal();render()}
-function sell(i){const x=S.inv[i];if(!x)return;S.bal+=x.p;S.inv.splice(i,1);save();bal();if(tab=='inv')render()}
+/* ===== Звук (WebAudio, без файлов) ===== */
+const snd=(()=>{let ac,mg,nb,lt=0,on=true;try{on=localStorage.getItem('bc_snd')!=='0'}catch(e){}
+const init=()=>{if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();mg=ac.createGain();mg.gain.value=.55;mg.connect(ac.destination)}catch(e){}}if(ac&&ac.state=='suspended')ac.resume()};
+const ok=()=>on&&ac&&ac.state!='closed';
+const tone=(fq,t0,d,ty,v,f2)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(fq,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v||.15,t0+.008);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(mg);o.start(t0);o.stop(t0+d+.03)};
+const noise=(t0,d,v,f1,f2)=>{if(!nb){nb=ac.createBuffer(1,ac.sampleRate*.6,ac.sampleRate);const a=nb.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}const s=ac.createBufferSource(),b=ac.createBiquadFilter(),g=ac.createGain();s.buffer=nb;b.type='bandpass';b.Q.value=1.2;b.frequency.setValueAtTime(f1,t0);if(f2)b.frequency.exponentialRampToValueAtTime(f2,t0+d);g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v,t0+d*.3);g.gain.exponentialRampToValueAtTime(.0001,t0+d);s.connect(b);b.connect(g);g.connect(mg);s.start(t0);s.stop(t0+d+.02)};
+const arp=(a,t0,gap,d,ty,v)=>a.forEach((x,i)=>tone(x,t0+i*gap,d,ty,v));
+return{init,get on(){return on},
+toggle(){on=!on;try{localStorage.setItem('bc_snd',on?'1':'0')}catch(e){}if(on)init();return on},
+tick(v){if(!ok())return;const n=ac.currentTime;if(n-lt<.028)return;lt=n;tone(780+Math.random()*60,n,.045,'triangle',.16*(v||1),300);noise(n,.025,.12*(v||1),2600)},
+click(){if(!ok())return;const n=ac.currentTime;tone(520,n,.09,'square',.07,240);noise(n,.04,.08,1800)},
+sell(){if(!ok())return;const n=ac.currentTime;tone(1318,n,.07,'square',.07);tone(1760,n+.07,.28,'square',.07)},
+lose(){if(!ok())return;const n=ac.currentTime;tone(300,n,.55,'sawtooth',.11,90);tone(150,n+.05,.55,'triangle',.14,60)},
+win(r){if(!ok())return;const n=ac.currentTime;r=r|0;
+if(r<=0){tone(587,n,.4,'sine',.18);tone(880,n+.09,.5,'sine',.12)}
+else if(r==1){arp([523,659,784],n,.09,.45,'sine',.16)}
+else if(r==2){noise(n,.45,.12,500,3000);arp([523,659,784,1047],n+.1,.09,.5,'triangle',.17);tone(130,n+.1,.8,'sawtooth',.05)}
+else if(r==3){noise(n,.7,.16,300,4000);arp([392,523,659,784,1047],n+.15,.08,.6,'triangle',.18);[523,659,784].forEach(x=>tone(x,n+.62,1.1,'sine',.12));tone(98,n+.15,1.2,'sawtooth',.07)}
+else{noise(n,1,.2,200,6000);arp([392,523,659,784,1047,1319,1568],n+.2,.075,.7,'triangle',.18);[523,659,784,1047].forEach(x=>tone(x,n+.85,1.8,'sine',.13));for(let i=0;i<8;i++)tone(2000+Math.random()*2500,n+1+i*.07,.15,'sine',.04);tone(65,n+.2,1.8,'sawtooth',.08)}}}})();
+addEventListener('pointerdown',()=>snd.init(),{once:true});
+function togSnd(b){b.textContent=snd.toggle()?'🔊 Звук вкл':'🔇 Звук выкл'}
+const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function anim(D,fn,done){const t0=performance.now();(function s(n){const p=Math.min(1,(n-t0)/D);fn(p);p<1?requestAnimationFrame(s):done()})(t0)}
+function gain(w,src,cn){const x={...w,src,cn:cn||'',t:Date.now(),u:++S.uid};S.inv.push(x);if(src=='case')S.stt.c++;if(!S.stt.b||x.p>S.stt.b.p)S.stt.b={n:x.n,im:x.im,r:x.r,w:x.w,p:x.p,src,cn:cn||''};return x}
+function logOut(x,st,sp){S.log.push({...x,st,sp:sp==null?x.p:sp,t2:Date.now()});if(S.log.length>400)S.log.shift()}
+const IK={c:IC('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),u:IC('<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>'),s:'₴',w:IC('<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>')};
+function ilist(){const A=S.inv.map((x,i)=>({...x,_i:i,_s:'inv'})),H=S.log.map(x=>({...x,_s:x.st}));
+const L=INV.f=='inv'?A:INV.f=='sold'?H.filter(x=>x.st=='sold'):INV.f=='up'?H.filter(x=>x.st=='up'):[...A,...H];return flist(L,INV)}
+const dt=t=>t?new Date(t).toLocaleString('ru-RU'):'';
+function dcard(x){const p=x.n.split(' | '),inv=x._s=='inv',src=x.src=='up'?['⬆','Из апгрейда']:['📦','Из кейса'+(x.cn?' «'+x.cn+'»':'')],d=(c,t)=>`<a class="${c}" title="${t||''}">`;
+const ft=inv?`${d('d','Контракты пока недоступны')}${IK.c}</a><a title="В апгрейд" onclick="goUp(${x._i})">${IK.u}</a><a title="Продать за ${f(x.p)}" onclick="sell(${x._i})">${IK.s}</a>${d('d','Вывод в Steam недоступен в симуляторе')}${IK.w}</a>`
+:`${d('d')}${IK.c}</a>${x.st=='up'?d('d h','Использован в апгрейде · '+dt(x.t2)):d('d')}${IK.u}</a>${x.st=='sold'?d('d h','Продано за '+f(x.sp)+' · '+dt(x.t2)):d('d')}${IK.s}</a>${d('d')}${IK.w}</a>`;
+return`<div class="dc ${inv?'':'gone'}" style="--c:${RC[x.r]}"><div class="bd"><span class="si" title="${src[1]}${x.t?' · '+dt(x.t):''}">${src[0]}</span><em title="${x.w||''}">${ab(x.w)}</em><img src="${img(x.im)}" loading="lazy" referrerpolicy="no-referrer" alt=""><div class="pp">${f(x.p)}</div><div class="tt">${p[0]}<br><span>${p[1]||'Обычный'}</span></div></div><div class="ft">${ft}</div></div>`}
+function rinv(){if(tab!='inv')return;const A=S.inv,H=S.log,L=ilist(),m=INV.n,st=S.stt,b=st.b,fl=INV.q||INV.lo!==''||INV.hi!=='',act=L.filter(x=>x._s=='inv'),tot=act.reduce((a,x)=>a+x.p,0),cs=k=>H.filter(x=>x.st==k).length;
+$('#ip').innerHTML=`<div class="pf"><div class="pfb"><div class="tl">Статистика<small>Аккаунта</small></div><div class="stt"><div title="Открыто кейсов">📦<span>${st.c}</span><small>кейсов</small></div><div title="Сделано апгрейдов">⬆️<span>${st.u}</span><small>апгрейдов</small></div><div title="Предметов в инвентаре">🎒<span>${A.length}</span><small>в инвентаре</small></div></div><div class="tl" style="margin-top:16px">Продано<small>на сумму</small></div><b style="color:var(--gr);font-size:1.2rem">${f(st.s)}</b></div>
+<div class="pfb pcn">${ID?ava():'<span class="av" style="background:linear-gradient(135deg,#ddd,#555)">Г</span>'}<b class="nm">${ID?nick():'Гость'}</b><div class="bz">${f(S.bal)}${S.lock?' 🔒':''}</div>${ID?'<button class="btn sm" onclick="topup()">ПОПОЛНИТЬ</button>':'<button class="btn sm" onclick="login()">Войти через Steam</button>'}</div>
+<div class="pfb"><div class="tl">Лучший дроп</div>${b?`<div class="bd1"><div><p><b>${b.n.length>26?b.n.slice(0,25)+'…':b.n}</b></p><p style="color:var(--mu);font-size:.78rem">${b.src=='up'?'⬆ Апгрейд':'📦 '+(b.cn||'Кейс')}</p><p class="pz">${f(b.p)}</p></div><img src="${img(b.im)}" referrerpolicy="no-referrer" alt=""></div>`:'<div class="ph" style="padding:20px 0">Пока нет дропа. Откройте кейс</div>'}</div></div>`;
+$('#ifs').innerHTML=`<div class="fs"><div class="row" style="margin:0;justify-content:flex-start">${[['all','Весь дроп',A.length+H.length],['inv','В инвентаре',A.length],['sold','Продано',cs('sold')],['up','В апгрейде',cs('up')]].map(([k,l,n])=>`<button class="chip ${INV.f==k?'on':''}" onclick="FS('inv','f','${k}')">${l} (${n})</button>`).join('')}</div>${act.length?`<button class="btn sm" onclick="sellF()">Продать ${fl?'найденные':'все'} (${act.length}) за ${f(tot)}</button>`:'<span style="color:var(--mu)">Нет предметов для продажи</span>'}</div>`;
+$('#il').innerHTML=L.slice(0,m).map(dcard).join('')||`<div class="ph2" style="grid-column:1/-1">${A.length+H.length?'Ничего не найдено':'Пока пусто. Откройте любой кейс'}</div>`;
+$('#im').innerHTML=more('inv',L.length,m)}
+function sellF(){const L=ilist().filter(x=>x._s=='inv');if(!L.length)return;const tot=L.reduce((a,x)=>a+x.p,0);if(!confirm('Продать '+L.length+' предметов за '+f(tot)+'?'))return;const ix=new Set(L.map(x=>x._i));S.inv.forEach((x,i)=>{if(ix.has(i))logOut(x,'sold')});S.bal+=tot;S.stt.s+=tot;S.inv=S.inv.filter((_,i)=>!ix.has(i));save();bal();snd.sell();rinv()}
+function sell(i){const x=S.inv[i];if(!x)return;S.bal+=x.p;S.stt.s+=x.p;logOut(x,'sold');S.inv.splice(i,1);save();bal();snd.sell();if(tab=='inv')rinv()}
+function sellIds(ids){let s=0;ids.forEach(u=>{const i=S.inv.findIndex(x=>x.u==u);if(i>=0){const x=S.inv[i];s+=x.p;logOut(x,'sold');S.inv.splice(i,1)}});S.bal+=s;S.stt.s+=s;save();bal();snd.sell()}
+function goUp(i){if(busy)return;up=U0();up.sel=[i];tab='up';oc=-1;render();scrollTo(0,0)}
+function setCnt(n){if(busy)return;cnt=n;document.querySelectorAll('.cnt b').forEach((b,i)=>b.classList.toggle('on',i+1==n));const c=CS[oc];document.querySelectorAll('.cpv').forEach(e=>e.textContent=f(c.pr*n));snd.click()}
+const UMH=['Мгновенный результат (~1 сек)','Классическое вращение (~5 сек)','Азартный режим: долгое вращение с замедлением (~12 сек)'];
+const umh=()=>`<div class="um">${[['⚡ Быстрый',0],['Обычный',1],['🎰 Азартный',2]].map(([l,m])=>`<button class="chip ${um==m?'on':''}" onclick="setMode(${m})">${l}</button>`).join('')}</div><div class="umh">${UMH[um]}</div>`;
+function setMode(m){if(busy)return;um=m;S.um=m;save();$('#umm').innerHTML=umh();snd.click()}
 const UN=['Kuzya','n1ghtfox','Dimon_77','sh0t','Vasyl','Reaper','AlexM','toxic','Lena','mrBlack'],drops=[];
 function addDrop(){const it=pick(rnd(CS));drops.unshift(it);drops.length=Math.min(drops.length,14);$('#tick').innerHTML=drops.map(x=>`<div class="mi" style="--c:${RC[x.r]}"><img src="${img(x.im)}" referrerpolicy="no-referrer" alt=""><small>${f(x.p)}</small></div>`).join('')}
 
@@ -169,12 +242,14 @@ $('#cts').innerHTML=L.slice(0,CF.n).map(x=>`<div class="c">${card(x)}</div>`).jo
 $('#cm').innerHTML=L.length>CF.n?`<button class="btn alt" onclick="CF.n+=200;cfr()">Показать ещё (${L.length-CF.n})</button>`:'';$('#cn').textContent=L.length}
 const V={
 cases:()=>{if(oc<0)return`<input placeholder="Поиск кейса" value="${Q}" oninput="sq(this.value)"><div id="cl">${clist()}</div>`;
-const c=CS[oc];return`<button class="chip" onclick="oc=-1;render()">← Все кейсы</button><div class="pan c" style="margin-top:12px"><div class="hero"><img src="${c.im}" alt=""><div><h2>${c.n}</h2><span class="pr">${f(c.pr)}</span></div></div><div id="roll"></div><div class="row"><button class="btn" onclick="openCase()">Открыть за ${f(c.pr)}</button><label class="chip"><input type="checkbox" style="width:auto;margin:0 6px 0 0" ${fast?'checked':''} onchange="fast=this.checked?1:0">Быстро</label></div></div>
-<h3>Содержимое кейса · <span id="cn"></span> предметов</h3><div class="flt"><select onchange="CF.so=+this.value;cfr()"><option value="1">Сначала дешёвые</option><option value="2" ${CF.so==2?'selected':''}>Сначала дорогие</option></select><input placeholder="Поиск по предметам" value="${CF.q}" oninput="CF.q=this.value;CF.n=120;cfr()"></div><div class="list" id="cts"></div><div class="row" id="cm"></div>`},
+const c=CS[oc];return`<button class="chip" onclick="oc=-1;render()">← Все кейсы</button><div class="ch"><small>СЕРИЙНЫЙ КЕЙС</small><h2>«${c.n}»</h2></div><div id="roll"></div>
+<div class="cnt"><span>Открыть</span>${[1,2,3,4,5,6,7,8,9,10].map(n=>`<b class="${n==cnt?'on':''}" onclick="setCnt(${n})">${n}</b>`).join('')}<span>раз</span></div>
+<div class="row"><button class="ob" onclick="openCase(0)">📦 ОТКРЫТЬ ЗА <span class="cpv">${f(c.pr*cnt)}</span></button><button class="ob" onclick="openCase(1)">⚡ БЫСТРО ЗА <span class="cpv">${f(c.pr*cnt)}</span></button></div>
+<h3 class="c" style="letter-spacing:1px;margin-top:28px">СОДЕРЖИМОЕ КЕЙСА · <span id="cn"></span> предметов</h3><div class="flt"><select onchange="CF.so=+this.value;cfr()"><option value="1">Сначала дешёвые</option><option value="2" ${CF.so==2?'selected':''}>Сначала дорогие</option></select><input placeholder="Поиск по предметам" value="${CF.q}" oninput="CF.q=this.value;CF.n=120;cfr()"></div><div class="list" id="cts"></div><div class="row" id="cm"></div>`},
 up:()=>`<h2 class="ut">МОДЕРНИЗАЦИЯ ОРУЖИЯ</h2><div id="u1">${u1()}</div>
-<div class="ug"><div class="up-p slid"><span>Добавить баланс</span><input type="range" min="0" max="${Math.floor(S.bal)}" value="${up.add}" oninput="up.add=+this.value;ref()"><b id="sv">${f(up.add)}</b></div><div class="c"><button class="btn big" onclick="upg()">⬆ ПРОКАЧАТЬ</button></div><div class="row mlt">${[2,5,10].map(m=>`<button class="chip" onclick="setM(${m})">x${m}</button>`).join('')}${[30,50,75].map(p=>`<button class="chip" onclick="setP(${p})">${p}%</button>`).join('')}<button class="chip" onclick="shuf()">🔀</button></div></div>
+<div class="ug"><div class="up-p slid"><span>Добавить баланс</span><input type="range" min="0" max="${Math.floor(S.bal)}" value="${up.add}" oninput="up.add=+this.value;ref()"><b id="sv">${f(up.add)}</b></div><div class="c"><div id="umm">${umh()}</div><button class="btn big" onclick="upg()">⬆ ПРОКАЧАТЬ</button></div><div class="row mlt">${[2,5,10].map(m=>`<button class="chip" onclick="setM(${m})">x${m}</button>`).join('')}${[30,50,75].map(p=>`<button class="chip" onclick="setP(${p})">${p}%</button>`).join('')}<button class="chip" onclick="shuf()">🔀</button></div></div>
 <div class="lists"><div class="up-p"><div class="flt"><b>Мои предметы (${S.inv.length} шт)</b></div>${fbar('mf')}<div class="list scroll" id="mi">${mil()}</div></div><div class="up-p"><div class="flt"><b>Выберите предмет</b></div>${fbar('tf',1)}<div class="list scroll" id="tg">${tgl()}</div></div></div></div>`,
-inv:()=>`<div class="pan"><h3 id="ih"></h3>${fbar('inv')}<div class="list" id="il"></div></div>`};
+inv:()=>`<h2 class="pt2">ПРОФИЛЬ</h2><div id="ip"></div><h2 class="pt2" style="margin-top:6px">ВАШИ ПРЕДМЕТЫ</h2><div id="ifs"></div>${fbar('inv')}<div class="drops" id="il"></div><div id="im"></div>`};
 const TK=Array.from({length:72},(_,i)=>{const a=i*5*Math.PI/180,l=i%6==0?10:5,s=Math.sin(a),c=Math.cos(a);return`<line x1="${150+s*118}" y1="${150-c*118}" x2="${150+s*(118+l)}" y2="${150-c*(118+l)}"/>`}).join('');
 const stake=()=>up.sel.reduce((s,i)=>s+(S.inv[i]?S.inv[i].p:0),0)+Math.min(up.add,S.bal);
 const chn=()=>{const s=stake();return up.tg&&s>0?Math.min(75,s/up.tg.p*95):0};
@@ -193,27 +268,32 @@ function setM(m){if(busy)return;const s=stake();if(!(s>0))return t('Сначал
 function setP(p){if(busy)return;const s=stake();if(!(s>0))return t('Сначала выберите предметы или добавьте баланс');up.tg=near(s*95/p);ref()}
 function shuf(){if(busy)return;const s=stake();if(!(s>0))return t('Сначала выберите предметы или добавьте баланс');const L=cat().filter(x=>x.p>s*1.2&&x.p<=s*10);if(!L.length)return t('Нет подходящих предметов');up.tg=rnd(L);ref()}
 function upg(){if(busy)return;const s=stake(),ch=chn();if(!(s>0))return t('Выберите предметы или добавьте баланс');if(!up.tg)return t('Выберите оружие, которое хотите получить');if(ch<1)return t('Шанс меньше 1%: выберите предмет дешевле или увеличьте ставку');
-const add=Math.min(up.add,S.bal);if(add>0&&!can(add))return;busy=1;S.bal-=add;bal();
-const a=Math.random()*360,win=a<ch*3.6;ang+=1440+((a-ang%360)+360)%360;$('#pt').style.transform=`rotate(${ang}deg)`;
-setTimeout(()=>{[...up.sel].sort((x,y)=>y-x).forEach(i=>S.inv.splice(i,1));const g=up.tg;if(win){S.inv.push({...g});t('Успех! '+g.n)}else t('Не повезло, ставка сгорела');up=U0();ang=0;busy=0;save();render()},4500)}
+const add=Math.min(up.add,S.bal);if(add>0&&!can(add))return;busy=1;S.bal-=add;bal();snd.init();snd.click();
+const a=Math.random()*360,win=a<ch*3.6,D=RM?300:[900,4500,12000][um],T=[2,4,9][um],P=[3,4,4.2][um],from=ang,to=from+T*360+((a-from%360)+360)%360,pt=$('#pt');let lk=Math.floor(from/5);
+anim(D,p=>{const A=from+(to-from)*(1-Math.pow(1-p,P));pt.style.transform=`rotate(${A}deg)`;const k=Math.floor(A/5);if(k!==lk){lk=k;snd.tick(.6)}},()=>{ang=to;setTimeout(()=>{
+[...up.sel].sort((x,y)=>y-x).forEach(i=>{if(S.inv[i]){logOut(S.inv[i],'up');S.inv.splice(i,1)}});S.stt.u++;const g=up.tg;
+if(win){gain({...g},'up');snd.win(Math.max(2,g.r));t('Успех! '+g.n)}else{snd.lose();t('Не повезло, ставка сгорела')}
+up=U0();ang=0;busy=0;save();render()},um==2?900:um==1?350:0)})}
 const sKey=x=>x.n.replace(/^★ /,'').replace('StatTrak™ ','');
 function flist(L,o,loDef){const q=o.q.toLowerCase(),lo=o.lo!==''?+o.lo:(loDef||0),hi=o.hi!==''?+o.hi:1e12;
 const R=L.filter(x=>(!o.k||x.k==o.k)&&x.p>=lo&&x.p<=hi&&((x.n+' '+(x.e||'')).toLowerCase().includes(q)));
-R.sort((a,b)=>o.sb=='n'?sKey(a).localeCompare(sKey(b),'ru'):a.p-b.p);if(o.s=='d')R.reverse();return R}
+R.sort((a,b)=>o.sb=='n'?sKey(a).localeCompare(sKey(b),'ru'):o.sb=='t'?(a.t2||a.t||0)-(b.t2||b.t||0):a.p-b.p);if(o.s=='d')R.reverse();return R}
 const FO=w=>w=='tf'?up.tf:w=='mf'?up.mf:INV;
 function FS(w,k,v){const o=FO(w);o[k]=v;if(k!='n')o.n=60;if(w=='inv')rinv();else ref()}
-function fbar(w,kind){const o=FO(w);return`<div class="flt"><select onchange="FS('${w}','sb',this.value)"><option value="p">Цена</option><option value="n" ${o.sb=='n'?'selected':''}>Название</option></select><button class="chip" title="Направление сортировки" onclick="FS('${w}','s','${o.s=='a'?'d':'a'}')">${o.s=='a'?'↑ по возрастанию':'↓ по убыванию'}</button>${kind?`<select onchange="FS('${w}','k',this.value)">${[['w','Скины'],['k','Ножи и перчатки'],['t','Стикеры'],['','Всё']].map(c=>`<option value="${c[0]}" ${o.k==c[0]?'selected':''}>${c[1]}</option>`).join('')}</select>`:''}<input type="number" placeholder="от ₴" value="${o.lo}" oninput="FS('${w}','lo',this.value)"><input type="number" placeholder="до ₴" value="${o.hi}" oninput="FS('${w}','hi',this.value)"><input placeholder="Поиск по названию" value="${o.q}" oninput="FS('${w}','q',this.value)"></div>`}
+function fbar(w,kind){const o=FO(w);return`<div class="flt"><select onchange="FS('${w}','sb',this.value)"><option value="p">Цена</option><option value="n" ${o.sb=='n'?'selected':''}>Название</option>${w=='tf'?'':`<option value="t" ${o.sb=='t'?'selected':''}>Время</option>`}</select><button class="chip" title="Направление сортировки" onclick="FS('${w}','s','${o.s=='a'?'d':'a'}')">${o.s=='a'?'↑ по возрастанию':'↓ по убыванию'}</button>${kind?`<select onchange="FS('${w}','k',this.value)">${[['w','Скины'],['k','Ножи и перчатки'],['t','Стикеры'],['','Всё']].map(c=>`<option value="${c[0]}" ${o.k==c[0]?'selected':''}>${c[1]}</option>`).join('')}</select>`:''}<input type="number" placeholder="от ₴" value="${o.lo}" oninput="FS('${w}','lo',this.value)"><input type="number" placeholder="до ₴" value="${o.hi}" oninput="FS('${w}','hi',this.value)"><input placeholder="Поиск по названию" value="${o.q}" oninput="FS('${w}','q',this.value)"></div>`}
 const more=(w,t,m)=>t>m?`<div class="row" style="width:100%"><button class="btn alt sm" onclick="FS('${w}','n',${m}+60)">Показать ещё (${t-m})</button></div>`:'';
-function render(){$('#side').innerHTML='<div class="logo" role="button" tabindex="0" onclick="home()" onkeydown="if(event.key==\'Enter\')home()">BLACKCASE</div>'+Object.keys(TABS).map(k=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${TABS[k]}</button>`).join('');$('#v').innerHTML=V[tab]();usr();if(tab=='cases'&&oc>=0)cfr();if(tab=='inv')rinv()}
+function render(){$('#side').innerHTML='<div class="logo" role="button" tabindex="0" onclick="home()" onkeydown="if(event.key==\'Enter\')home()">BLACKCASE</div>'+Object.keys(TABS).map(k=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${TABS[k]}</button>`).join('')+`<button class="snd" onclick="togSnd(this)">${snd.on?'🔊 Звук вкл':'🔇 Звук выкл'}</button>`;$('#v').innerHTML=V[tab]();usr();if(tab=='cases'&&oc>=0)cfr();if(tab=='inv')rinv()}
 
 /* ===== Игровая логика ===== */
-function openCase(){if(busy)return;const c=CS[oc];if(!can(c.pr))return;S.bal-=c.pr;bal();busy=1;const w=pick(c);
-const done=()=>{S.inv.push(w);save();busy=0;$('#res').innerHTML=`<div class="list" style="justify-content:center">${card(w)}</div><button class="btn sm" onclick="sell(${S.inv.length-1});this.parentNode.innerHTML=''">Продать за ${f(w.p)}</button>`};
-if(fast){$('#roll').innerHTML='<div id="res" class="res"></div>';return done()}
-const s=[];for(let j=0;j<56;j++)s.push(j==46?w:pick(c));
-$('#roll').innerHTML=`<div class="rl"><div class="tr" id="tr">${s.map(x=>card(x).replace('loading="lazy"','')).join('')}</div></div><div id="res" class="res"></div>`;
-const tr=$('#tr');tr.getBoundingClientRect();const W=tr.parentElement.clientWidth,iw=tr.children[0].offsetWidth+10;
-tr.style.transform=`translateX(${-(46*iw+iw/2-W/2+(Math.random()*iw*.6-iw*.3))}px)`;tr.addEventListener('transitionend',done,{once:true})}
+function openCase(fq){if(busy)return;const c=CS[oc],n=cnt;if(!can(c.pr*n))return;S.bal-=c.pr*n;bal();busy=1;snd.init();snd.click();
+const ws=Array.from({length:n},()=>pick(c));
+const fin=()=>{const ids=ws.map(w=>gain(w,'case',c.n).u),sum=ws.reduce((a,w)=>a+w.p,0);busy=0;save();snd.win(Math.max(...ws.map(w=>w.r)));
+$('#res').innerHTML=`<div class="list" style="justify-content:center">${ws.map(card).join('')}</div><div class="row"><button class="btn sm" onclick="sellIds([${ids}]);this.closest('.res').innerHTML=''">Продать ${n>1?'всё ':''}за ${f(sum)}</button></div>`};
+if(fq){$('#roll').innerHTML='<div id="res" class="res"></div>';return fin()}
+const rows=ws.map(w=>{const s=[];for(let j=0;j<56;j++)s.push(j==46?w:pick(c));return s});
+$('#roll').innerHTML=rows.map(s=>`<div class="rl ${n>2?'s':''}"><div class="tr">${s.map(x=>card(x).replace('loading="lazy"','')).join('')}</div></div>`).join('')+'<div id="res" class="res"></div>';
+const trs=[...document.querySelectorAll('#roll .tr')],W=trs[0].parentElement.clientWidth,iw=trs[0].children[0].offsetWidth+10,tg=trs.map(()=>46*iw+iw/2-W/2+(Math.random()*.6-.3)*iw),D=RM?300:n>1?5200:6000;let last=-1;
+anim(D,p=>{const e=1-Math.pow(1-p,4.2);trs.forEach((tr,k)=>tr.style.transform=`translateX(${-tg[k]*e}px)`);const ix=Math.floor((tg[0]*e+W/2)/iw);if(ix!==last){last=ix;snd.tick()}},fin)}
 /* ===== Загрузка ===== */
 async function getRate(){try{const d=await fetch(NBU).then(r=>r.json()),v=+d[0].rate;if(v>0){RATE=v;return}}catch(e){}try{const d=await fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()),v=+d.rates.UAH;if(v>0)RATE=v}catch(e){}}
 const okPr=o=>{let n=0;for(const k in o){const p=o[k],q=p&&p.steam||{};if(+q.last_24h||+q.last_7d||+q.last_30d||+q.last_90d||(p&&p.skinport&&+p.skinport.starting_at)||(p&&p.csgotrader&&+p.csgotrader.price))if(++n>500)return 1}return 0};
