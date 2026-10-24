@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Привет Артур</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Fullscreen proportional background */
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      min-height: 100vh;
+      background-image: url('https://files.catbox.moe/luxu2b.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+    }
+
+    /* Ambient pulse glow animation */
+    @keyframes subtleGlow {
+      0%, 100% {
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.25), 
+                    0 10px 40px rgba(0, 0, 0, 0.4),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.6);
+      }
+      50% {
+        box-shadow: 0 0 45px rgba(255, 255, 255, 0.5), 
+                    0 15px 50px rgba(0, 0, 0, 0.5),
+                    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    .glass-btn {
+      animation: subtleGlow 3s infinite ease-in-out;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+  <!-- Centered Glassmorphic Button -->
+  <button
+    id="arturBtn"
+    type="button"
+    class="glass-btn relative px-10 py-5 sm:px-14 sm:py-6 rounded-2xl bg-white/20 hover:bg-white/30 active:scale-95 text-white font-extrabold text-2xl sm:text-3xl tracking-widest uppercase transition-all duration-200 border border-white/40 cursor-pointer select-none drop-shadow-2xl"
+  >
+    ПРИВЕТ АРТУР
+  </button>
+
+  <script>
+    // Direct audio stream from catbox
+    const sound = new Audio('https://files.catbox.moe/fifc6t.mp3');
+    sound.preload = 'auto';
+
+    const btn = document.getElementById('arturBtn');
+
+    btn.addEventListener('click', () => {
+      // Reset currentTime to 0 so every click triggers instant playback
+      sound.currentTime = 0;
+      sound.play().catch((err) => {
+        console.error('Audio playback failed:', err);
+      });
+    });
+  </script>
+</body>
+</html>
