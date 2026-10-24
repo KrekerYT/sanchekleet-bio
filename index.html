@@ -106,7 +106,7 @@
   document.addEventListener('keydown',function(){if(!overlay.classList.contains('hide'))enter();});
 
   // просмотры: по умолчанию 13, +1 за заход
-  var BASE=13, el=document.getElementById('viewCount');
+  var BASE=???, el=document.getElementById('viewCount');
   function show(n){if(el)el.textContent=n;}
   show(BASE);
   function localFallback(){
@@ -306,6 +306,81 @@ var DISCORD_ID = "1526332389452677170";
     }
     document.title=out;
   },50);
+})();
+</script>
+<style>
+  #dashBtn{position:fixed;top:15px;right:15px;z-index:2147483300;padding:9px 16px;border-radius:12px;cursor:pointer;
+    background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.12);color:#fff;font:600 13px/1 inherit;font-family:inherit;letter-spacing:1.5px;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:background .2s,border-color .2s}
+  #dashBtn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.25)}
+  #dashPanel{position:fixed;top:0;right:0;height:100%;width:max(320px,20vw);max-width:100vw;z-index:2147483200;
+    background:rgba(15,15,15,.72);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-left:2px solid rgba(255,255,255,.1);
+    color:#fff;transform:translateX(105%);transition:transform .35s ease;display:flex;flex-direction:column;box-sizing:border-box}
+  #dashPanel.open{transform:translateX(0)}
+  #dashHead{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:2px solid rgba(255,255,255,.08);font-weight:700;letter-spacing:2px;font-size:14px}
+  #dashClose{cursor:pointer;opacity:.7;font-size:20px;line-height:1;padding:2px 6px}
+  #dashClose:hover{opacity:1}
+  #dashList{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+  .dashItem{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:14px;line-height:1.45;word-break:break-word}
+  .dashItem img,.dashItem video{width:100%;border-radius:10px;display:block;margin-bottom:8px;background:#000}
+  .dashItem a{color:#9ecbff}
+  .dashItem .dd{opacity:.5;font-size:12px;margin-top:8px}
+  .dashItem .tx{white-space:pre-wrap}
+  #dashEmpty{opacity:.55;font-size:14px;text-align:center;margin-top:30px}
+</style>
+<button id=dashBtn type=button>DASHBOARD</button>
+<div id=dashPanel>
+  <div id=dashHead><span>DASHBOARD</span><span id=dashClose>&times;</span></div>
+  <div id=dashList><div id=dashEmpty>Загрузка…</div></div>
+</div>
+<script>
+(function(){
+  /* ВСТАВЬ СЮДА адрес своего Cloudflare Worker, например: https://news.твойник.workers.dev (без / на конце) */
+  var WORKER_URL='';
+
+  var btn=document.getElementById('dashBtn'),panel=document.getElementById('dashPanel'),
+      list=document.getElementById('dashList'),close=document.getElementById('dashClose');
+  var timer=null;
+
+  function open(){panel.classList.add('open');load();clearInterval(timer);timer=setInterval(load,30000);}
+  function shut(){panel.classList.remove('open');clearInterval(timer);}
+  btn.addEventListener('click',function(){panel.classList.contains('open')?shut():open();});
+  close.addEventListener('click',shut);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')shut();});
+
+  // текст -> безопасные узлы (ссылки http/https кликабельны, HTML не исполняется)
+  function fill(el,text){
+    var re=/(https?:\/\/[^\s<]+)/g,last=0,m;
+    while((m=re.exec(text))){
+      if(m.index>last)el.appendChild(document.createTextNode(text.slice(last,m.index)));
+      var a=document.createElement('a');a.href=m[1];a.textContent=m[1];a.target='_blank';a.rel='noopener noreferrer nofollow';
+      el.appendChild(a);last=m.index+m[1].length;
+    }
+    if(last<text.length)el.appendChild(document.createTextNode(text.slice(last)));
+  }
+  function fmt(ts){
+    var d=new Date(ts);
+    return d.toLocaleDateString('ru-RU')+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  }
+  function render(items){
+    list.innerHTML='';
+    if(!items.length){var e=document.createElement('div');e.id='dashEmpty';e.textContent='Пока нет новостей';list.appendChild(e);return;}
+    items.forEach(function(it){
+      var box=document.createElement('div');box.className='dashItem';
+      var src=it.file_id?WORKER_URL+'/file/'+encodeURIComponent(it.file_id):null;
+      if(it.type==='photo'&&src){var im=document.createElement('img');im.loading='lazy';im.src=src;im.alt='';box.appendChild(im);}
+      else if(it.type==='video'&&src){var v=document.createElement('video');v.src=src;v.controls=true;v.preload='metadata';v.playsInline=true;box.appendChild(v);}
+      else if(it.type==='document'&&src){var da=document.createElement('a');da.href=src;da.target='_blank';da.rel='noopener noreferrer';da.textContent='📎 '+(it.name||'файл');box.appendChild(da);}
+      if(it.text){var t=document.createElement('div');t.className='tx';fill(t,it.text);box.appendChild(t);}
+      var dd=document.createElement('div');dd.className='dd';dd.textContent=fmt(it.date);box.appendChild(dd);
+      list.appendChild(box);
+    });
+  }
+  function load(){
+    if(!WORKER_URL){list.innerHTML='<div id=dashEmpty>Новости пока не подключены</div>';return;}
+    fetch(WORKER_URL+'/news').then(function(r){if(!r.ok)throw 0;return r.json();}).then(render)
+      .catch(function(){list.innerHTML='<div id=dashEmpty>Не удалось загрузить новости</div>';});
+  }
 })();
 </script>
 </body></html>
