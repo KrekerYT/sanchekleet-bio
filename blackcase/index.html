@@ -70,13 +70,16 @@ const CI=['case1.jpg','case2.jpg'];
 const SRC='https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/',PRICES='https://prices.csgotrader.app/latest/prices_v6.json',NBU='https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json';
 const $=s=>document.querySelector(s),rnd=a=>a[Math.random()*a.length|0],sl=ms=>new Promise(r=>setTimeout(r,ms));
 const RC=['#4b69ff','#8847ff','#d32ce6','#eb4b4b','#ffd700'],RN=['Mil-Spec','Restricted','Classified','Covert','Rare Special'],BASE=[79.92,15.98,3.2,.64,.26],EST=[.5,3,12,60,400];
-const WN=['Factory New','Minimal Wear','Field-Tested','Well-Worn','Battle-Scarred'],WW=[3,7,33,24,33],WR=['Прямо с завода','Немного поношенное','После полевых испытаний','Поношенное','Закалённое в боях'],WA=['ПЗ','НП','ПИ','ПН','ЗБ'],TM={'Mil-Spec Grade':0,'Restricted':1,'Classified':2,'Covert':3};
+const WN=['Factory New','Minimal Wear','Field-Tested','Well-Worn','Battle-Scarred'],WW=[3,7,33,24,33],WR=['Прямо с завода','Немного поношенное','После полевых испытаний','Поношенное','Закалённое в боях'],WA=['FN','MW','FT','WW','BS'],TM={'Mil-Spec Grade':0,'Restricted':1,'Classified':2,'Covert':3};
 (function(){const p=new URLSearchParams(location.search),c=p.get('openid.claimed_id'),m=c&&c.match(/\/openid\/id\/(\d{17})$/);if(m&&p.get('openid.mode')=='id_res'){try{localStorage.setItem('bc_id',m[1])}catch(e){}history.replaceState(null,'',location.pathname)}})();
 let ID='';try{ID=localStorage.getItem('bc_id')||''}catch(e){}
-let SK={},CS=[],PR={},RATE=41.5,CAT=null,pm=0,S={bal:25,lock:1,inv:[]},tab='cases',oc=-1,Q='',busy=0,ang=0,fast=0,up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:'',k:'w',n:60};
+let SK={},CS=[],PR={},RATE=41.5,CAT=null,pm=0,S={bal:25,lock:1,inv:[]},tab='cases',oc=-1,Q='',busy=0,ang=0,fast=0,up=U0();
 try{const d=JSON.parse(localStorage.getItem('bc4_'+(ID||'guest')));if(d&&d.inv)S=d}catch(e){}
 if(!S.v3){S.v3=1;S.nc=0;S.ps=0;if(/^Игрок \d{4}$/.test(S.nick||''))S.nick=''}
 const save=()=>{try{localStorage.setItem('bc4_'+(ID||'guest'),JSON.stringify(S))}catch(e){}};
+function F0(k){return{sb:'p',s:'a',lo:'',hi:'',q:'',k:k||'',n:60}}
+function U0(){return{sel:[],add:0,tg:null,tf:F0('w'),mf:F0()}}
+let INV=F0();
 const f=v=>'₴'+(v>=1000?Math.round(v).toLocaleString('uk-UA'):v.toFixed(2)),img=u=>u+'/200fx150f';
 const tierS=s=>s.st?0:/Knives|Gloves/.test(s.category.name)?4:(TM[s.rarity.name]??0);
 function usd(h){const p=PR[h];if(!p)return null;const s=p.steam||{};return +s.last_24h||+s.last_7d||+s.last_30d||+s.last_90d||(p.skinport&&+p.skinport.starting_at)||(p.csgotrader&&+p.csgotrader.price)||null}
@@ -101,26 +104,26 @@ const itm=(v,n,p,e)=>({n:n||dn(v.s),e:e||v.s.name,im:v.s.image,w:v.w,p:p==null?v
 function mkCase(n,pr,im,pl,rtp){pl.sort((a,b)=>a.p-b.p);const mn=pl.length?pl[0].p*1.25:0;if(pr*rtp<mn)pr=Math.ceil(mn/rtp/5)*5;
 const W=a=>pl.map(x=>Math.pow(x.p,-a)),ev=a=>{let s=0,t=0;W(a).forEach((v,i)=>{s+=v*pl[i].p;t+=v});return s/t},tg=pr*rtp;let lo=0,hi=30;for(let i=0;i<50;i++){const m=(lo+hi)/2;ev(m)>tg?lo=m:hi=m}
 const ws=W(hi),tot=ws.reduce((a,b)=>a+b);pl.forEach(x=>{x.r=tierP(x.p)});return{n,pr,im,pool:pl,ws,tot}}
-function mkCases(){const R=rng(20261024),used=new Set();
-/* Кейс 1: ~35 предметов, каждый скин один раз, плюс несколько StatTrak-версий и стикеры */
-const V1=vars(s=>!/Knives|Gloves|Equipment/.test(s.category.name)&&!(s.weapon&&s.weapon.name=='AWP')&&s.category.name!='Sticker').filter(v=>v.p<=3000),A=[];
-for(const t of geo(2,2500,26)){const v=nr(V1,t,used,R);if(v){used.add(v.s.id);A.push(v)}}
-for(let i=0;A.length<26&&i<40;i++){const v=nr(V1,2+R()*2000,used,R);if(v){used.add(v.s.id);A.push(v)}}
-const c1=A.map(v=>itm(v)),stl=[];
-for(const v of A){if(!v.s.stattrak)continue;const pu=usd(stn(v.s.name)+' ('+v.w+')'),p=pu?pu*RATE:(pm?0:v.p*1.6);if(p>=1)stl.push(itm(v,stn(dn(v.s)),+p.toFixed(2),stn(v.s.name)))}
-c1.push(...spread(stl,5));
-const SV=svars();for(const t of [4,15,60,250]){const v=nr(SV,t,used,R);if(v){used.add(v.s.id);c1.push(itm(v))}}
-/* Кейс 2: 10 разных AWP от минимальной цены до ₴1000 */
-const V2=vars(s=>s.weapon&&s.weapon.name=='AWP').filter(v=>v.p<=1000),c2=[],mn=V2.length?Math.min(...V2.map(v=>v.p)):1;
-for(const t of geo(Math.max(1,mn),1000,10)){const v=nr(V2,t,used,R);if(v){used.add(v.s.id);c2.push(itm(v))}}
+const STW=['AWP','SSG 08','SCAR-20'];
+function mkCases(){const R=rng(20261025),used=new Set(),isG=s=>!/Knives|Gloves|Equipment|Sticker/.test(s.category.name),stOf=(A,cap)=>{const o=[];for(const v of A){if(!v.s.stattrak)continue;const pu=usd(stn(v.s.name)+' ('+v.w+')'),p=pu?pu*RATE:(pm?0:v.p*1.6);if(p>=1&&p<=cap)o.push(itm(v,stn(dn(v.s)),+p.toFixed(2),stn(v.s.name)))}return o};
+/* Кейс 1: только скины на оружие (без AWP/SSG 08/SCAR-20), 30 скинов + 5 StatTrak-версий */
+const V1=vars(s=>isG(s)&&!(s.weapon&&STW.includes(s.weapon.name))).filter(v=>v.p<=3000),A=[];
+for(const t of geo(2,2500,30)){const v=nr(V1,t,used,R);if(v){used.add(v.s.id);A.push(v)}}
+for(let i=0;A.length<30&&i<40;i++){const v=nr(V1,2+R()*2000,used,R);if(v){used.add(v.s.id);A.push(v)}}
+const c1=A.map(v=>itm(v));c1.push(...spread(stOf(A,3500),5));
+/* Кейс 2: AWP + SSG 08 + SCAR-20 (30 разных скинов) + 4 StatTrak-версии, до ₴1000 */
+const V2=vars(s=>isG(s)&&s.weapon&&STW.includes(s.weapon.name)).filter(v=>v.p<=1000),B=[];
+for(const [w,n,top] of [['AWP',14,1000],['SSG 08',8,700],['SCAR-20',8,700]]){const Vw=V2.filter(v=>v.s.weapon.name==w);if(!Vw.length)continue;const mn=Math.max(1,Math.min(...Vw.map(v=>v.p)));
+for(const t of geo(mn,Math.max(top,mn*2),n)){const v=nr(Vw,t,used,R);if(v){used.add(v.s.id);B.push(v)}}}
+const c2=B.map(v=>itm(v));c2.push(...spread(stOf(B,1200),4));
 return[mkCase('Первый',25,CI[0],c1,.5),mkCase('Мечта авапера',67,CI[1],c2,.5)]}
 function pick(c){let r=Math.random()*c.tot,i=0;while(i<c.pool.length-1&&r>=c.ws[i]){r-=c.ws[i];i++}const x=c.pool[i];return{n:x.n,im:x.im,r:x.r,w:x.w,p:x.p}}
 const ab=w=>WA[WN.indexOf(w)]||'';
-const card=x=>{const p=x.n.split(' | ');return`<div class="it" style="--c:${RC[x.r]}"><em title="${WR[WN.indexOf(x.w)]||''}">${ab(x.w)}</em><img src="${img(x.im)}" loading="lazy" referrerpolicy="no-referrer" alt=""><small>${p[0]}</small><b>${p[1]||'Обычный'}</b><i>${f(x.p)}</i></div>`};
+const card=x=>{const p=x.n.split(' | ');return`<div class="it" style="--c:${RC[x.r]}"><em title="${x.w}">${ab(x.w)}</em><img src="${img(x.im)}" loading="lazy" referrerpolicy="no-referrer" alt=""><small>${p[0]}</small><b>${p[1]||'Обычный'}</b><i>${f(x.p)}</i></div>`};
 function t(m){const e=$('#t');e.textContent=m;e.classList.add('on');clearTimeout(t.h);t.h=setTimeout(()=>e.classList.remove('on'),2300)}
 const bal=()=>{const e=$('#bal');if(!e)return;e.textContent=f(S.bal)+(S.lock?' 🔒':'');e.title=S.lock?'Заблокировано до пополнения от ₴100':''};
 const TABS={cases:'📦 Кейсы',up:'⬆️ Апгрейд',inv:'🎒 Инвентарь'};
-function go(x){if(busy)return t('Дождитесь окончания');up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:'',k:'w',n:60};tab=x;oc=-1;render()}
+function go(x){if(busy)return t('Дождитесь окончания');up=U0();tab=x;oc=-1;render()}
 function home(){if(busy)return t('Дождитесь окончания');tab='cases';oc=-1;Q='';render();scrollTo(0,0)}
 function login(){if(!/^https?:$/.test(location.protocol))return t('Вход через Steam работает, когда сайт открыт по http(s), а не как файл');const r=location.origin+location.pathname,ns='http://specs.openid.net/auth/2.0';
 location.href='https://steamcommunity.com/openid/login?'+new URLSearchParams({'openid.ns':ns,'openid.mode':'checkid_setup','openid.return_to':r,'openid.realm':location.origin,'openid.identity':ns+'/identifier_select','openid.claimed_id':ns+'/identifier_select'})}
@@ -147,39 +150,42 @@ function can(c){if(S.lock){t('Стартовые ₴25 разблокируют�
 function topup(){if(!ID){t('Сначала войдите через Steam');return login()}if($('#md'))return;const m=document.createElement('div');m.id='md';m.style.cssText='position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px';
 m.innerHTML=`<div class="pan c" style="max-width:380px;width:100%;margin:0"><h3>Пополнение баланса</h3><p style="color:var(--mu)">Минимум ₴100. После первого пополнения разблокируются стартовые ₴25. Демо-режим: реальные платежи не подключены.</p><input id="am" type="number" min="100" step="50" value="100"><div class="row">${[100,250,500,1000].map(v=>`<button class="chip" onclick="$('#am').value=${v}">${v}</button>`).join('')}</div><div class="row"><button class="btn" onclick="dep()">Пополнить</button><button class="btn alt" onclick="$('#md').remove()">Отмена</button></div></div>`;document.body.appendChild(m)}
 function dep(){const v=+$('#am').value;if(!(v>=100))return t('Минимальная сумма ₴100');S.bal+=v;t(S.lock?'Пополнено, ₴25 разблокированы':'Баланс пополнен');S.lock=0;save();bal();$('#md').remove()}
+function ilist(){return flist(S.inv.map((x,i)=>({...x,_i:i})),INV)}
+function rinv(){if(tab!='inv')return;const L=ilist(),m=INV.n,tot=L.reduce((a,x)=>a+x.p,0),fl=INV.q||INV.lo!==''||INV.hi!=='';
+$('#ih').innerHTML=`Инвентарь · ${S.inv.length} шт · ${f(S.inv.reduce((a,x)=>a+x.p,0))} ${L.length?`<button class="btn sm" onclick="sellF()">${fl?'Продать найденные ('+L.length+') за '+f(tot):'Продать всё'}</button>`:''}`;
+$('#il').innerHTML=(L.slice(0,m).map(x=>`<div class="c">${card(x)}<button class="btn sm" onclick="sell(${x._i})">Продать</button></div>`).join('')||'<p style="color:var(--mu)">'+(S.inv.length?'Ничего не найдено':'Пока пусто.')+'</p>')+more('inv',L.length,m)}
+function sellF(){const L=ilist();if(!L.length)return;const tot=L.reduce((a,x)=>a+x.p,0);if(!confirm('Продать '+L.length+' предметов за '+f(tot)+'?'))return;const ix=new Set(L.map(x=>x._i));S.bal+=tot;S.inv=S.inv.filter((_,i)=>!ix.has(i));save();bal();render()}
 function sell(i){const x=S.inv[i];if(!x)return;S.bal+=x.p;S.inv.splice(i,1);save();bal();if(tab=='inv')render()}
-function sellAll(){S.bal+=S.inv.reduce((s,x)=>s+x.p,0);S.inv=[];save();render()}
 const UN=['Kuzya','n1ghtfox','Dimon_77','sh0t','Vasyl','Reaper','AlexM','toxic','Lena','mrBlack'],drops=[];
 function addDrop(){const it=pick(rnd(CS));drops.unshift(it);drops.length=Math.min(drops.length,14);$('#tick').innerHTML=drops.map(x=>`<div class="mi" style="--c:${RC[x.r]}"><img src="${img(x.im)}" referrerpolicy="no-referrer" alt=""><small>${f(x.p)}</small></div>`).join('')}
 
 /* ===== Страницы ===== */
-const cc=c=>`<div class="cc" onclick="oc=${CS.indexOf(c)};CF={q:'',r:0,n:120};render();scrollTo(0,0)"><img src="${c.im}" alt=""><b>${c.n}</b><span class="pr">${f(c.pr)}</span></div>`;
+const cc=c=>`<div class="cc" onclick="oc=${CS.indexOf(c)};CF={q:'',so:CF.so,n:120};render();scrollTo(0,0)"><img src="${c.im}" alt=""><b>${c.n}</b><span class="pr">${f(c.pr)}</span></div>`;
 const clist=()=>{const q=Q.toLowerCase();return`<div class="cg">${CS.filter(c=>c.n.toLowerCase().includes(q)).map(cc).join('')||'Ничего не найдено'}</div>`};
 const sq=v=>{Q=v;$('#cl').innerHTML=clist()};
-const RG=[['Все',0,1e12],['до ₴100',0,100],['₴100–1000',100,1000],['₴1000–1600',1000,1600],['от ₴1600',1600,1e12]];let CF={q:'',r:0,n:120};
-function cfr(){const c=CS[oc];if(!c)return;if(!c.sorted)c.sorted=[...c.pool].sort((a,b)=>b.p-a.p);const q=CF.q.toLowerCase(),g=RG[CF.r],L=c.sorted.filter(x=>x.p>=g[1]&&x.p<g[2]&&(x.n+' '+(x.e||'')).toLowerCase().includes(q));
+let CF={q:'',so:1,n:120};
+function cfr(){const c=CS[oc];if(!c)return;const q=CF.q.toLowerCase(),L=c.pool.filter(x=>(x.n+' '+(x.e||'')).toLowerCase().includes(q)).sort((a,b)=>CF.so==2?b.p-a.p:a.p-b.p);
 $('#cts').innerHTML=L.slice(0,CF.n).map(x=>`<div class="c">${card(x)}</div>`).join('')||'<div class="ph2">Ничего не найдено</div>';
-$('#cm').innerHTML=L.length>CF.n?`<button class="btn alt" onclick="CF.n+=200;cfr()">Показать ещё (${L.length-CF.n})</button>`:'';$('#cn').textContent=L.length.toLocaleString('uk-UA')}
+$('#cm').innerHTML=L.length>CF.n?`<button class="btn alt" onclick="CF.n+=200;cfr()">Показать ещё (${L.length-CF.n})</button>`:'';$('#cn').textContent=L.length}
 const V={
 cases:()=>{if(oc<0)return`<input placeholder="Поиск кейса" value="${Q}" oninput="sq(this.value)"><div id="cl">${clist()}</div>`;
 const c=CS[oc];return`<button class="chip" onclick="oc=-1;render()">← Все кейсы</button><div class="pan c" style="margin-top:12px"><div class="hero"><img src="${c.im}" alt=""><div><h2>${c.n}</h2><span class="pr">${f(c.pr)}</span></div></div><div id="roll"></div><div class="row"><button class="btn" onclick="openCase()">Открыть за ${f(c.pr)}</button><label class="chip"><input type="checkbox" style="width:auto;margin:0 6px 0 0" ${fast?'checked':''} onchange="fast=this.checked?1:0">Быстро</label></div></div>
-<h3>Содержимое кейса · <span id="cn"></span> предметов</h3><div class="flt"><input placeholder="Поиск по предметам" value="${CF.q}" oninput="CF.q=this.value;CF.n=120;cfr()">${RG.map((g,i)=>`<button class="chip ${i==CF.r?'on':''}" onclick="CF.r=${i};CF.n=120;render()">${g[0]}</button>`).join('')}</div><div class="list" id="cts"></div><div class="row" id="cm"></div>`},
+<h3>Содержимое кейса · <span id="cn"></span> предметов</h3><div class="flt"><select onchange="CF.so=+this.value;cfr()"><option value="1">Сначала дешёвые</option><option value="2" ${CF.so==2?'selected':''}>Сначала дорогие</option></select><input placeholder="Поиск по предметам" value="${CF.q}" oninput="CF.q=this.value;CF.n=120;cfr()"></div><div class="list" id="cts"></div><div class="row" id="cm"></div>`},
 up:()=>`<h2 class="ut">МОДЕРНИЗАЦИЯ ОРУЖИЯ</h2><div id="u1">${u1()}</div>
 <div class="ug"><div class="up-p slid"><span>Добавить баланс</span><input type="range" min="0" max="${Math.floor(S.bal)}" value="${up.add}" oninput="up.add=+this.value;ref()"><b id="sv">${f(up.add)}</b></div><div class="c"><button class="btn big" onclick="upg()">⬆ ПРОКАЧАТЬ</button></div><div class="row mlt">${[2,5,10].map(m=>`<button class="chip" onclick="setM(${m})">x${m}</button>`).join('')}${[30,50,75].map(p=>`<button class="chip" onclick="setP(${p})">${p}%</button>`).join('')}<button class="chip" onclick="shuf()">🔀</button></div></div>
-<div class="lists"><div class="up-p"><h4>Мои предметы (${S.inv.length} шт)</h4><div class="list scroll" id="mi">${mil()}</div></div><div class="up-p"><div class="flt"><b>Выберите предмет</b><select onchange="up.k=this.value;up.n=60;ref()">${[['w','Скины'],['k','Ножи и перчатки'],['t','Стикеры'],['','Всё']].map(o=>`<option value="${o[0]}" ${up.k==o[0]?'selected':''}>${o[1]}</option>`).join('')}</select><select onchange="up.s=this.value;up.n=60;ref()"><option value="a">Цена ↑</option><option value="d" ${up.s=='d'?'selected':''}>Цена ↓</option></select><input type="number" placeholder="от ₴" value="${up.lo}" oninput="up.lo=this.value;up.n=60;ref()"><input type="number" placeholder="до ₴" value="${up.hi}" oninput="up.hi=this.value;up.n=60;ref()"><input placeholder="Поиск" value="${up.q}" oninput="up.q=this.value;up.n=60;ref()"></div><div class="list scroll" id="tg">${tgl()}</div></div></div>`,
-inv:()=>`<div class="pan"><h3>Инвентарь · ${f(S.inv.reduce((s,x)=>s+x.p,0))} ${S.inv.length?'<button class="btn sm" onclick="sellAll()">Продать всё</button>':''}</h3><div class="list">${S.inv.length?S.inv.map((x,i)=>`<div class="c">${card(x)}<button class="btn sm" onclick="sell(${i})">Продать</button></div>`).join(''):'<p style="color:var(--mu)">Пока пусто.</p>'}</div></div>`};
+<div class="lists"><div class="up-p"><div class="flt"><b>Мои предметы (${S.inv.length} шт)</b></div>${fbar('mf')}<div class="list scroll" id="mi">${mil()}</div></div><div class="up-p"><div class="flt"><b>Выберите предмет</b></div>${fbar('tf',1)}<div class="list scroll" id="tg">${tgl()}</div></div></div></div>`,
+inv:()=>`<div class="pan"><h3 id="ih"></h3>${fbar('inv')}<div class="list" id="il"></div></div>`};
 const TK=Array.from({length:72},(_,i)=>{const a=i*5*Math.PI/180,l=i%6==0?10:5,s=Math.sin(a),c=Math.cos(a);return`<line x1="${150+s*118}" y1="${150-c*118}" x2="${150+s*(118+l)}" y2="${150-c*(118+l)}"/>`}).join('');
 const stake=()=>up.sel.reduce((s,i)=>s+(S.inv[i]?S.inv[i].p:0),0)+Math.min(up.add,S.bal);
 const chn=()=>{const s=stake();return up.tg&&s>0?Math.min(75,s/up.tg.p*95):0};
-function cat(){if(!CAT){CAT=[];for(const s of Object.values(SK)){if(skipSt(s))continue;const a=wl(s);for(const w of a.length?a:['']){if(pm&&!usd(hn(s,w)))continue;CAT.push(mk(s,tierS(s),w))}}CAT.sort((x,y)=>x.p-y.p)}return CAT}
+function cat(){if(!CAT){CAT=[];for(const s of Object.values(SK)){if(skipSt(s))continue;const a=wl(s);for(const w of a.length?a:['']){if(pm&&!usd(hn(s,w)))continue;CAT.push(mk(s,tierS(s),w));if(s.stattrak&&pm){const pu=usd(stn(s.name)+' ('+w+')');if(pu){const x=mk(s,tierS(s),w);x.n=stn(dn(s));x.e=stn(s.name);x.p=+(pu*RATE).toFixed(2);CAT.push(x)}}}}CAT.sort((x,y)=>x.p-y.p)}return CAT}
 function u1(){const ch=chn(),L=2*Math.PI*98;
 return`<div class="ug"><div class="up-p c"><div class="hd">Выберите до 6 предметов на апгрейд</div><div class="sg">${up.sel.length?up.sel.map(i=>`<div class="pick" onclick="tog(${i})">${card(S.inv[i])}</div>`).join(''):'<div class="ph">Выберите предметы ниже или добавьте баланс</div>'}</div><div class="sm">Ставка: <b>${f(stake())}</b></div></div>
 <div class="dial"><svg viewBox="0 0 300 300"><g stroke="rgba(255,255,255,.28)" stroke-width="2">${TK}</g><circle cx="150" cy="150" r="98" fill="none" stroke="#262932" stroke-width="16"/><circle cx="150" cy="150" r="98" fill="none" stroke="#e9ebf1" stroke-width="16" stroke-dasharray="${ch/100*L} ${L}" transform="rotate(-90 150 150)" style="filter:drop-shadow(0 0 6px #fff)"/><defs><radialGradient id="dg"><stop offset="0" stop-color="#2d2f39"/><stop offset="1" stop-color="#121317"/></radialGradient></defs><circle cx="150" cy="150" r="78" fill="url(#dg)"/><g id="pt"><path d="M150 68L139 42H161Z" fill="#fff" style="filter:drop-shadow(0 0 5px #fff)"/></g><text x="150" y="152" fill="#fff" font-size="30" font-weight="800" text-anchor="middle">${ch.toFixed(2)}%</text><text x="150" y="174" fill="#8d93a1" font-size="12" text-anchor="middle">шанс</text></svg></div>
 <div class="up-p c"><div class="hd">Выберите оружие, которое хотите получить</div>${up.tg?`<div class="sg one">${card(up.tg)}</div><div class="sm">Цена: <b>${f(up.tg.p)}</b></div>`:'<div class="ph">Выберите предмет из каталога или нажмите множитель</div>'}</div></div>`}
-const mil=()=>S.inv.map((x,i)=>`<div class="pick ${up.sel.includes(i)?'sel':''}" onclick="tog(${i})">${card(x)}</div>`).join('')||'<div class="ph">Нет предметов. Откройте любой кейс</div>';
-function tgl(){const q=up.q.toLowerCase(),s=stake(),lo=up.lo!==''?+up.lo:(s>0?s*1.01:0),hi=up.hi!==''?+up.hi:1e12;
-const L=cat().filter(x=>(!up.k||x.k==up.k)&&x.p>=lo&&x.p<=hi&&((x.n+' '+(x.e||'')).toLowerCase().includes(q)));if(up.s=='d')L.reverse();const m=up.n||60;window.TL=L.slice(0,m);
-return(TL.map((x,i)=>`<div class="pick ${up.tg&&up.tg.n==x.n&&up.tg.w==x.w?'sel':''}" onclick="up.tg=TL[${i}];ref()">${card(x)}</div>`).join('')||'<div class="ph">Ничего не найдено</div>')+(L.length>m?`<div class="row" style="width:100%"><button class="btn alt sm" onclick="up.n=${m}+60;ref()">Показать ещё (${L.length-m})</button></div>`:'')}
+const mil=()=>{const o=up.mf,L=flist(S.inv.map((x,i)=>({...x,_i:i})),o),m=o.n;return(L.slice(0,m).map(x=>`<div class="pick ${up.sel.includes(x._i)?'sel':''}" onclick="tog(${x._i})">${card(x)}</div>`).join('')||'<div class="ph">'+(S.inv.length?'Ничего не найдено':'Нет предметов. Откройте любой кейс')+'</div>')+more('mf',L.length,m)}
+function tgl(){const st=stake(),o=up.tf,L=flist(cat(),o,st>0?st*1.01:0),m=o.n;window.TL=L.slice(0,m);
+return(TL.map((x,i)=>`<div class="pick ${up.tg&&up.tg.n==x.n&&up.tg.w==x.w?'sel':''}" onclick="up.tg=TL[${i}];ref()">${card(x)}</div>`).join('')||'<div class="ph">Ничего не найдено</div>')+more('tf',L.length,m)}
 function ref(){if(tab!='up'||busy)return;$('#u1').innerHTML=u1();$('#mi').innerHTML=mil();$('#tg').innerHTML=tgl();$('#sv').textContent=f(up.add)}
 function tog(i){if(busy)return;const k=up.sel.indexOf(i);if(k>=0)up.sel.splice(k,1);else if(up.sel.length<6)up.sel.push(i);else t('Максимум 6 предметов');ref()}
 function near(w){let b=null,d=1e18;for(const x of cat()){const k=Math.abs(x.p-w);if(k<d){d=k;b=x}}return b}
@@ -189,8 +195,16 @@ function shuf(){if(busy)return;const s=stake();if(!(s>0))return t('Сначал�
 function upg(){if(busy)return;const s=stake(),ch=chn();if(!(s>0))return t('Выберите предметы или добавьте баланс');if(!up.tg)return t('Выберите оружие, которое хотите получить');if(ch<1)return t('Шанс меньше 1%: выберите предмет дешевле или увеличьте ставку');
 const add=Math.min(up.add,S.bal);if(add>0&&!can(add))return;busy=1;S.bal-=add;bal();
 const a=Math.random()*360,win=a<ch*3.6;ang+=1440+((a-ang%360)+360)%360;$('#pt').style.transform=`rotate(${ang}deg)`;
-setTimeout(()=>{[...up.sel].sort((x,y)=>y-x).forEach(i=>S.inv.splice(i,1));const g=up.tg;if(win){S.inv.push({...g});t('Успех! '+g.n)}else t('Не повезло, ставка сгорела');up={sel:[],add:0,tg:null,q:'',s:'a',lo:'',hi:'',k:'w',n:60};ang=0;busy=0;save();render()},4500)}
-function render(){$('#side').innerHTML='<div class="logo" role="button" tabindex="0" onclick="home()" onkeydown="if(event.key==\'Enter\')home()">BLACKCASE</div>'+Object.keys(TABS).map(k=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${TABS[k]}</button>`).join('');$('#v').innerHTML=V[tab]();usr();if(tab=='cases'&&oc>=0)cfr()}
+setTimeout(()=>{[...up.sel].sort((x,y)=>y-x).forEach(i=>S.inv.splice(i,1));const g=up.tg;if(win){S.inv.push({...g});t('Успех! '+g.n)}else t('Не повезло, ставка сгорела');up=U0();ang=0;busy=0;save();render()},4500)}
+const sKey=x=>x.n.replace(/^★ /,'').replace('StatTrak™ ','');
+function flist(L,o,loDef){const q=o.q.toLowerCase(),lo=o.lo!==''?+o.lo:(loDef||0),hi=o.hi!==''?+o.hi:1e12;
+const R=L.filter(x=>(!o.k||x.k==o.k)&&x.p>=lo&&x.p<=hi&&((x.n+' '+(x.e||'')).toLowerCase().includes(q)));
+R.sort((a,b)=>o.sb=='n'?sKey(a).localeCompare(sKey(b),'ru'):a.p-b.p);if(o.s=='d')R.reverse();return R}
+const FO=w=>w=='tf'?up.tf:w=='mf'?up.mf:INV;
+function FS(w,k,v){const o=FO(w);o[k]=v;if(k!='n')o.n=60;if(w=='inv')rinv();else ref()}
+function fbar(w,kind){const o=FO(w);return`<div class="flt"><select onchange="FS('${w}','sb',this.value)"><option value="p">Цена</option><option value="n" ${o.sb=='n'?'selected':''}>Название</option></select><button class="chip" title="Направление сортировки" onclick="FS('${w}','s','${o.s=='a'?'d':'a'}')">${o.s=='a'?'↑ по возрастанию':'↓ по убыванию'}</button>${kind?`<select onchange="FS('${w}','k',this.value)">${[['w','Скины'],['k','Ножи и перчатки'],['t','Стикеры'],['','Всё']].map(c=>`<option value="${c[0]}" ${o.k==c[0]?'selected':''}>${c[1]}</option>`).join('')}</select>`:''}<input type="number" placeholder="от ₴" value="${o.lo}" oninput="FS('${w}','lo',this.value)"><input type="number" placeholder="до ₴" value="${o.hi}" oninput="FS('${w}','hi',this.value)"><input placeholder="Поиск по названию" value="${o.q}" oninput="FS('${w}','q',this.value)"></div>`}
+const more=(w,t,m)=>t>m?`<div class="row" style="width:100%"><button class="btn alt sm" onclick="FS('${w}','n',${m}+60)">Показать ещё (${t-m})</button></div>`:'';
+function render(){$('#side').innerHTML='<div class="logo" role="button" tabindex="0" onclick="home()" onkeydown="if(event.key==\'Enter\')home()">BLACKCASE</div>'+Object.keys(TABS).map(k=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${TABS[k]}</button>`).join('');$('#v').innerHTML=V[tab]();usr();if(tab=='cases'&&oc>=0)cfr();if(tab=='inv')rinv()}
 
 /* ===== Игровая логика ===== */
 function openCase(){if(busy)return;const c=CS[oc];if(!can(c.pr))return;S.bal-=c.pr;bal();busy=1;const w=pick(c);
