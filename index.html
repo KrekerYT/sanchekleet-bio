@@ -113,10 +113,20 @@
     try{var c=parseInt(localStorage.getItem('sanchek_views')||'0',10)+1;localStorage.setItem('sanchek_views',c);show(BASE+c);}
     catch(e){show(BASE+1);}
   }
-  fetch('https://api.counterapi.dev/v1/sanchek-page-l33t/views/up')
-    .then(function(r){if(!r.ok)throw 0;return r.json();})
-    .then(function(d){if(d&&typeof d.count==='number')show(BASE+d.count);else throw 0;})
-    .catch(localFallback);
+  // общий счётчик: пробуем несколько сервисов по очереди, в конце — локальный запасной
+  function getJSON(url){
+    var ctl=('AbortController' in window)?new AbortController():null;
+    var t=setTimeout(function(){if(ctl)ctl.abort();},6000);
+    return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(r){clearTimeout(t);if(!r.ok)throw 0;return r.json();});
+  }
+  var SOURCES=[
+    function(){return getJSON('https://abacus.jasoncameron.dev/hit/sanchek-l33t-site/views').then(function(d){if(typeof d.value!=='number')throw 0;return d.value;});},
+    function(){return getJSON('https://api.counterapi.dev/v1/sanchek-l33t-site/views/up').then(function(d){if(typeof d.count!=='number')throw 0;return d.count;});}
+  ];
+  (function tryNext(i){
+    if(i>=SOURCES.length){localFallback();return;}
+    SOURCES[i]().then(function(c){show(BASE+c);}).catch(function(){tryNext(i+1);});
+  })(0);
 })();
 </script>
 <script>
