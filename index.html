@@ -105,8 +105,8 @@
   overlay.addEventListener('click',enter);
   document.addEventListener('keydown',function(){if(!overlay.classList.contains('hide'))enter();});
 
-  // просмотры: по умолчанию 13, +1 за заход
-  var BASE=???, el=document.getElementById('viewCount');
+  // просмотры: по умолчанию 1, +1 за заход
+  var BASE=1, el=document.getElementById('viewCount');
   function show(n){if(el)el.textContent=n;}
   show(BASE);
   function localFallback(){
