@@ -95,7 +95,7 @@ input,select{font:inherit;color:#fff;background:var(--p2);border:1px solid var(-
 </div></div>
 <div id="t"></div>
 <script>
-const CI=['cas1.jpg','cas2.jpg'];
+const CI=['case1.jpg','case2.jpg'];
 /* ===== Источники данных (грузятся в браузере) ===== */
 const SRC='https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/',PRICES='https://prices.csgotrader.app/latest/prices_v6.json',NBU='https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json';
 const $=s=>document.querySelector(s),rnd=a=>a[Math.random()*a.length|0],sl=ms=>new Promise(r=>setTimeout(r,ms));
@@ -113,13 +113,13 @@ function U0(){return{sel:[],add:0,tg:null,tf:F0('w'),mf:F0()}}
 let INV=Object.assign(F0(),{sb:'t',s:'d',f:'all'}),cnt=1,um=S.um==null?1:S.um;
 const f=v=>'₴'+(v>=1000?Math.round(v).toLocaleString('uk-UA'):v.toFixed(2)),img=u=>u+'/200fx150f';
 const tierS=s=>s.st?0:/Knives|Gloves/.test(s.category.name)?4:(TM[s.rarity.name]??0);
-const CAP=60000,PV=o=>{if(o==null)return 0;if(typeof o=='object')return PV(o.price)||PV(o.starting_at)||PV(o.suggested_price)||PV(o.highest_order)||PV(o.median_price)||PV(o.min_price)||0;return +o>0?+o:0},
+const CAP=1e12,PV=o=>{if(o==null)return 0;if(typeof o=='object')return PV(o.price)||PV(o.starting_at)||PV(o.suggested_price)||PV(o.highest_order)||PV(o.median_price)||PV(o.min_price)||0;return +o>0?+o:0},
 PK=['skinport','csgotrader','csmoney','buff163','bitskins','lootfarm','swapgg','cstrade','skinbaron','csgoempire','waxpeer','white'],
 TOPN={'AWP | Dragon Lore':1450,'AWP | Gungnir':1400,'M4A4 | Howl':1300,'AK-47 | Wild Lotus':1000,'AWP | Medusa':900,'M4A1-S | Knight':650,'AK-47 | Fire Serpent':450,'M4A4 | Poseidon':260,'AWP | Fade':120};
 function pv(p){const s=p.steam||{};let v=+s.last_24h||+s.last_7d||+s.last_30d||+s.last_90d;if(v)return v;for(const k of PK){v=PV(p[k]);if(v)return v}for(const k in p){v=PV(p[k]);if(v)return v}return 0}
 function usd(h){const p=PR[h];if(!p)return null;return pv(p)||null}
 const hn=(s,w)=>w?s.name+' ('+w+')':s.name,dn=s=>s.ru||s.name;
-function pUSD(s,w,t){const v=usd(hn(s,w));if(v)return Math.min(v,CAP/RATE);const tp=TOPN[s.name];if(tp)return Math.min(tp*([1,.8,.62,.5,.42][WN.indexOf(w)]||1),CAP/RATE);let h=2166136261;for(const c of s.id+'|'+w){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}const u=((h>>>0)%100000)/100000,k=[1,.8,.62,.5,.42][WN.indexOf(w)]||1;return Math.min(EST[t]*Math.exp((u-.5)*2.4)*k,CAP/RATE)}
+function pUSD(s,w,t){const v=usd(hn(s,w));if(v)return Math.min(v,CAP/RATE);let h=2166136261;for(const c of s.id+'|'+w){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}const u=((h>>>0)%100000)/100000,k=[1,.8,.62,.5,.42][WN.indexOf(w)]||1;return Math.min(EST[t]*Math.exp((u-.5)*2.4)*k,CAP/RATE)}
 const wl=s=>(s.wears||[]).map(w=>w.name);
 function rw(s){const a=wl(s);if(!a.length)return'';let r=Math.random()*a.reduce((x,w)=>x+WW[WN.indexOf(w)],0);for(const w of a){r-=WW[WN.indexOf(w)];if(r<0)return w}return a[0]}
 const dw=s=>{const a=wl(s);return a.includes('Field-Tested')?'Field-Tested':a[0]||''};
