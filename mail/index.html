@@ -185,7 +185,7 @@
         .reg-only { display: none; }
         .reg-only.active { display: block; }
 
-        /* Dashboard Layout с Glassmorphism */
+        /* Dashboard Layout */
         .dashboard-container {
             width: 100vw;
             height: 100vh;
@@ -232,11 +232,25 @@
             font-weight: 700;
             font-size: 0.9rem;
             cursor: pointer;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             transition: all 0.2s;
             box-shadow: 0 4px 15px var(--accent-glow);
         }
         .compose-btn:hover { transform: translateY(-1px); }
+
+        .test-roblox-btn {
+            background: rgba(255, 51, 102, 0.15);
+            color: #ff3366;
+            border: 1px solid rgba(255, 51, 102, 0.4);
+            border-radius: 10px;
+            padding: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+        .test-roblox-btn:hover { background: rgba(255, 51, 102, 0.25); }
 
         .nav-list {
             list-style: none;
@@ -354,25 +368,34 @@
         }
 
         .mail-list {
-            width: 380px;
+            width: 400px;
             border-right: 1px solid var(--border-color);
             overflow-y: auto;
             background: rgba(5,5,8,0.4);
         }
 
         .mail-item {
-            padding: 18px 24px;
+            padding: 16px 20px;
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             transition: background 0.15s ease;
+            position: relative;
         }
 
         .mail-item:hover { background: rgba(255, 255, 255, 0.03); }
         .mail-item.active { background: rgba(255, 255, 255, 0.07); border-left: 3px solid var(--accent-main); }
 
-        .mail-sender { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
-        .mail-subject { font-size: 0.9rem; color: var(--text-main); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .mail-snippet { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mail-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .mail-sender { font-size: 0.85rem; font-weight: 700; color: var(--text-main); }
+        .mail-time { font-size: 0.75rem; color: var(--text-muted); }
+        .mail-subject { font-size: 0.85rem; color: var(--text-main); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mail-snippet { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .mail-reader {
             flex-grow: 1;
@@ -391,20 +414,13 @@
         .reader-meta { font-size: 0.85rem; color: var(--text-muted); }
         .reader-body { font-size: 0.95rem; line-height: 1.6; color: #d1d1d6; }
 
-        /* Кастом панель настроек */
-        .custom-panel {
-            padding: 30px;
-            max-width: 600px;
-        }
+        .custom-panel { padding: 30px; max-width: 600px; }
         .custom-panel h2 { margin-bottom: 20px; font-size: 1.5rem; }
         .custom-section { margin-bottom: 20px; }
         .custom-section label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
         .color-pickers { display: flex; gap: 15px; }
-        .color-pickers input[type="color"] {
-            background: none; border: 1px solid var(--border-color); width: 50px; height: 40px; border-radius: 8px; cursor: pointer;
-        }
+        .color-pickers input[type="color"] { background: none; border: 1px solid var(--border-color); width: 50px; height: 40px; border-radius: 8px; cursor: pointer; }
 
-        /* Модалка отправки */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
@@ -472,6 +488,7 @@
                     S mail <span>@sanchek.de</span>
                 </div>
                 <button class="compose-btn" onclick="openComposeModal()">+ Написать письмо</button>
+                <button class="test-roblox-btn" onclick="simulateRobloxMail()">⚡ Симуляция Roblox</button>
                 <ul class="nav-list" id="navList">
                     <li class="nav-item active" onclick="switchFolder('inbox', this)">Входящие</li>
                     <li class="nav-item" onclick="switchFolder('sent', this)">Отправленные</li>
@@ -495,10 +512,7 @@
                 <div class="content-area" id="mainContentArea">
                     <div class="mail-list" id="mailListContainer"></div>
                     <div class="mail-reader" id="mailReader">
-                        <div class="reader-header">
-                            <div class="reader-subject">Выберите письмо</div>
-                            <div class="reader-meta">—</div>
-                        </div>
+                        <div class="reader-header"><div class="reader-subject">Выберите письмо</div><div class="reader-meta">—</div></div>
                         <div class="reader-body">Нажмите на письмо в списке слева.</div>
                     </div>
                 </div>
@@ -512,7 +526,7 @@
             <h3>Новое сообщение</h3>
             <div class="input-group">
                 <div class="input-field-wrapper">
-                    <input type="text" id="composeTo" class="input-field" placeholder="Получатель (например: roblox@support.com)">
+                    <input type="text" id="composeTo" class="input-field" placeholder="Получатель (например: support@roblox.com)">
                 </div>
             </div>
             <div class="input-group">
@@ -535,8 +549,8 @@
         let activeMailId = null;
 
         let sampleInbox = [
-            { id: 1, folder: 'inbox', sender: 'Cloudflare Security', subject: 'DNS Propagation Complete', time: 'Сегодня, 03:32', body: 'Твой домен <b>sanchek.de</b> успешно активирован.' },
-            { id: 2, folder: 'inbox', sender: 'Roblox Verification', subject: 'Your Roblox security code', time: 'Вчера, 19:12', body: 'Verification code: <b>992-104</b>' }
+            { id: 1, folder: 'inbox', sender: 'Cloudflare Security', subject: 'DNS Propagation Complete', time: '03:32', body: 'Твой домен <b>sanchek.de</b> успешно активирован.' },
+            { id: 2, folder: 'inbox', sender: 'Roblox Verification', subject: 'Your Roblox security code', time: '19:12', body: 'Verification code: <b>992-104</b>' }
         ];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -622,7 +636,7 @@
                                 <button class="btn" style="width:auto; margin:0; padding:8px 16px;" onclick="resetTheme()">Сбросить</button>
                             </div>
                         </div>
-                        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:20px;">Здесь ты можешь кастомизировать подсветку интерфейса под свой вкус. Изменения сохраняются автоматически.</p>
+                        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:20px;">Настройка подсветки интерфейса под твой стиль.</p>
                     </div>
                 `;
             } else {
@@ -646,6 +660,14 @@
 
         function saveMails(mails) { localStorage.setItem(`mails_${currentUser}`, JSON.stringify(mails)); }
 
+        // Функция получения точного текущего времени (часы:минуты)
+        function getCurrentTimeString() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
         function loadMails(query = '') {
             const container = document.getElementById('mailListContainer');
             if (!container) return;
@@ -657,9 +679,13 @@
                 return;
             }
 
+            // Каждое сообщение выводится отдельно со своим временем, без стакания
             container.innerHTML = filtered.map(m => `
                 <div class="mail-item ${activeMailId === m.id ? 'active' : ''}" onclick="openMail(${m.id})">
-                    <div class="mail-sender">${m.sender}</div>
+                    <div class="mail-item-header">
+                        <span class="mail-sender">${m.sender}</span>
+                        <span class="mail-time">${m.time || 'Только что'}</span>
+                    </div>
                     <div class="mail-subject">${m.subject}</div>
                     <div class="mail-snippet">${m.body.replace(/<[^>]*>?/gm, '')}</div>
                 </div>
@@ -672,18 +698,39 @@
             const mail = getMails().find(m => m.id === id);
             if (!mail) return;
             document.getElementById('mailReader').innerHTML = `
-                <div class="reader-header"><div class="reader-subject">${mail.subject}</div><div class="reader-meta">От: ${mail.sender} • ${mail.time}</div></div>
+                <div class="reader-header">
+                    <div class="reader-subject">${mail.subject}</div>
+                    <div class="reader-meta">От: ${mail.sender} • ${mail.time || 'Только что'}</div>
+                </div>
                 <div class="reader-body">${mail.body}</div>
             `;
         }
 
         function refreshInbox() {
             const btn = document.querySelector('.refresh-btn');
-            btn.innerText = "⏳ Обновление...";
+            btn.innerText = "⏳ Проверка...";
             setTimeout(() => {
                 loadMails();
                 btn.innerText = "🔄 Обновить";
-            }, 600);
+            }, 500);
+        }
+
+        // Кнопка быстрой симуляции прилета письма от Roblox для проверки интерфейса
+        function simulateRobloxMail() {
+            const mails = getMails();
+            const randomCode = Math.floor(100000 + Math.random() * 900000);
+            const newMail = {
+                id: Date.now(),
+                folder: 'inbox',
+                sender: 'Roblox Verification',
+                subject: 'Your Roblox security code',
+                time: getCurrentTimeString(),
+                body: `Hello,<br><br>Your verification code is: <b>${randomCode}</b><br><br>— Roblox Team`
+            };
+            mails.unshift(newMail);
+            saveMails(mails);
+            if (currentFolder === 'inbox') loadMails();
+            alert("✨ Симуляция: Новое письмо от Roblox успешно получено!");
         }
 
         function filterMails(q) { loadMails(q); }
@@ -698,14 +745,20 @@
             if (!to || !subject || !body) { alert("Заполни все поля!"); return; }
 
             const mails = getMails();
-            mails.unshift({ id: Date.now(), folder: 'sent', sender: to, subject, time: 'Только что', body: body.replace(/\n/g, '<br>') });
+            mails.unshift({ 
+                id: Date.now(), 
+                folder: 'sent', 
+                sender: to, 
+                subject, 
+                time: getCurrentTimeString(), 
+                body: body.replace(/\n/g, '<br>') 
+            });
             saveMails(mails);
             closeComposeModal();
             alert("Письмо отправлено!");
             if (currentFolder === 'sent') loadMails();
         }
 
-        // Кастомизация темы
         function changeAccent(color) {
             document.documentElement.style.setProperty('--accent-main', color);
             document.documentElement.style.setProperty('--accent-border', color + '66');
