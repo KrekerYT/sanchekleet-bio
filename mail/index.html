@@ -493,7 +493,6 @@
             currentEmail = `${user}@sanchek.de`;
 
             if (isRegisterMode) {
-                // Регистрация с запросом в Телеграм
                 const btn = document.getElementById('actionBtn');
                 const statusBox = document.getElementById('statusBox');
 
@@ -524,10 +523,9 @@
                         })
                     });
 
-                    // Сохраняем локально учетку в localStorage для симуляции базы данных
-                    localStorage.setItem(`user_${user}`, pass);
+                    // Сохраняем пароль локально под этого пользователя
+                    localStorage.setItem(`pass_${user}`, pass);
 
-                    // Начинаем опрос обновлений
                     startPolling(user);
 
                 } catch (e) {
@@ -537,14 +535,20 @@
                 }
 
             } else {
-                // Обычный вход по сохраненным данным
-                const savedPass = localStorage.getItem(`user_${user}`);
-                if (savedPass && savedPass === pass) {
-                    showDashboard();
-                } else {
-                    // Для удобства тестирования разрешим вход, если почта залогинена или создана
-                    showDashboard();
+                // Строгая проверка входа по сохраненному паролю
+                const savedPass = localStorage.getItem(`pass_${user}`);
+                
+                if (!savedPass) {
+                    alert("Такой почтовый ящик не зарегистрирован!");
+                    return;
                 }
+
+                if (savedPass !== pass) {
+                    alert("Неверный пароль!");
+                    return;
+                }
+
+                showDashboard();
             }
         }
 
@@ -572,7 +576,6 @@
                             const query = update.callback_query;
                             const callbackData = query.data;
 
-                            // Гасим часики загрузки на кнопке бота
                             fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
