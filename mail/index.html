@@ -1,1 +1,603 @@
 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S mail // Sanchek Ecosystem</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --surface-color: #0a0a0a;
+            --surface-glass: rgba(14, 14, 14, 0.75);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.2);
+            --text-main: #f3f3f3;
+            --text-muted: #737373;
+            --accent: #ffffff;
+            --accent-dim: #1a1a1a;
+            --danger: #ff453a;
+            --success: #32d74b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Ambient Glow Background */
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Screen Wrapper */
+        .screen {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.98);
+            position: absolute;
+        }
+
+        /* Auth Screen */
+        .auth-card {
+            width: 420px;
+            background: var(--surface-glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .brand-logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .brand-subtitle {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-field-wrapper {
+            display: flex;
+            align-items: center;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0 16px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-field-wrapper:focus-within {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+        }
+
+        .input-field {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            padding: 14px 0;
+        }
+
+        .input-suffix {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 500;
+            user-select: none;
+            white-space: nowrap;
+            padding-left: 4px;
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--accent);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.1s ease;
+            margin-top: 4px;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn:active {
+            transform: scale(0.99);
+        }
+
+        /* Status / Loading Overlay inside Auth */
+        .status-box {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            display: none;
+        }
+
+        .status-box.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Dashboard Screen */
+        .dashboard-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            background: var(--bg-color);
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+        }
+
+        .sidebar-brand {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-brand span {
+            font-size: 0.75rem;
+            background: var(--accent-dim);
+            border: 1px solid var(--border-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .user-profile-badge {
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+
+        .main-workspace {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-color);
+        }
+
+        .topbar {
+            height: 64px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+        }
+
+        .search-bar {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px;
+            width: 320px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .content-area {
+            flex-grow: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .mail-list {
+            width: 380px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .mail-item {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .mail-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .mail-item.active {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .mail-sender {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .mail-subject {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mail-snippet {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mail-reader {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .reader-header {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .reader-subject {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .reader-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .reader-body {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #d1d1d1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+
+    <!-- ЭКРАН 1: АВТОРИЗАЦИЯ / РЕГИСТРАЦИЯ ПОЧТЫ -->
+    <div id="authScreen" class="screen">
+        <div class="auth-card">
+            <div class="brand-header">
+                <div class="brand-logo">S</div>
+                <div class="brand-subtitle">Secure Mail Gateway</div>
+            </div>
+
+            <div class="input-group">
+                <div class="input-field-wrapper">
+                    <input type="text" id="usernameInput" class="input-field" placeholder="username" autocomplete="off" spellcheck="false">
+                    <span class="input-suffix">@sanchek.de</span>
+                </div>
+            </div>
+
+            <button class="btn" id="requestBtn" onclick="requestRegistration()">Создать почту</button>
+
+            <div id="statusBox" class="status-box">
+                Ожидание подтверждения в Telegram канале...
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 2: ОСНОВНОЙ ПОЧТОВЫЙ ИНТЕРФЕЙС -->
+    <div id="dashboardScreen" class="screen hidden">
+        <div class="dashboard-container">
+            <!-- Сайдбар -->
+            <div class="sidebar">
+                <div class="sidebar-brand">
+                    S mail <span>@sanchek.de</span>
+                </div>
+                <ul class="nav-list">
+                    <li class="nav-item active">Входящие</li>
+                    <li class="nav-item">Отправленные</li>
+                    <li class="nav-item">Черновики</li>
+                    <li class="nav-item">Корзина</li>
+                </ul>
+                <div class="user-profile-badge" id="userBadge">
+                    user@sanchek.de
+                </div>
+            </div>
+
+            <!-- Рабочая область -->
+            <div class="main-workspace">
+                <div class="topbar">
+                    <input type="text" class="search-bar" placeholder="Поиск по сообщениям...">
+                </div>
+                <div class="content-area">
+                    <!-- Список писем -->
+                    <div class="mail-list">
+                        <div class="mail-item active" onclick="openMail(1)">
+                            <div class="mail-sender">Cloudflare Security</div>
+                            <div class="mail-subject">DNS Propagation Complete</div>
+                            <div class="mail-snippet">Your domain sanchek.de is now successfully active...</div>
+                        </div>
+                        <div class="mail-item" onclick="openMail(2)">
+                            <div class="mail-sender">GitHub Pages</div>
+                            <div class="mail-subject">Deployment successful</div>
+                            <div class="mail-snippet">Your latest commit was deployed to production...</div>
+                        </div>
+                    </div>
+
+                    <!-- Чтение письма -->
+                    <div class="mail-reader" id="mailReader">
+                        <div class="reader-header">
+                            <div class="reader-subject">DNS Propagation Complete</div>
+                            <div class="reader-meta">От: no-reply@cloudflare.com • Сегодня, 03:32</div>
+                        </div>
+                        <div class="reader-body">
+                            Привет!<br><br>
+                            Твой домен <b>sanchek.de</b> успешно активирован в системе Cloudflare Email Routing. Все входящие маршруты функционируют в штатном режиме.<br><br>
+                            — Команда инфраструктуры Sanchek
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BOT_TOKEN = "8759855537:AAGeXnLK-R0Vwb6aQooMVms87JyFQGOVjGQ";
+        const ADMIN_CHAT_ID = "5149127446";
+        
+        let currentUsername = "";
+        let pollInterval = null;
+        let lastUpdateId = 0;
+
+        async function requestRegistration() {
+            const input = document.getElementById('usernameInput');
+            const username = input.value.trim().toLowerCase();
+            
+            if (!username) {
+                alert("Введите имя почтового ящика");
+                return;
+            }
+
+            currentUsername = `${username}@sanchek.de`;
+            const btn = document.getElementById('requestBtn');
+            const statusBox = document.getElementById('statusBox');
+
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            statusBox.classList.add('active');
+            statusBox.innerHTML = `Запрос отправлен в Telegram. Ждем подтверждения для <b>${currentUsername}</b>...`;
+
+            // Отправка сообщения в Telegram с Inline кнопками (Да / Нет)
+            const text = `🎛 Запрос на регистрацию почты:\n👤 Ящик: <b>${currentUsername}</b>\nID сессии: <code>${ADMIN_CHAT_ID}</code>`;
+            
+            const keyboard = {
+                inline_keyboard: [
+                    [
+                        { text: "✅ Подтвердить", callback_data: `approve_${username}` },
+                        { text: "❌ Отклонить", callback_data: `reject_${username}` }
+                    ]
+                ]
+            };
+
+            try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: ADMIN_CHAT_ID,
+                        text: text,
+                        parse_mode: 'HTML',
+                        reply_markup: keyboard
+                    })
+                });
+
+                // Запуск опроса обновлений для отслеживания нажатия кнопок в Telegram
+                startPolling(username);
+
+            } catch (err) {
+                console.error(err);
+                alert("Ошибка соединения с Telegram API");
+                resetForm();
+            }
+        }
+
+        function startPolling(username) {
+            // Получаем начальный offset чтобы игнорировать старые апдейты
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=1`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok && data.result.length > 0) {
+                        lastUpdateId = data.result[data.result.length - 1].update_id;
+                    }
+                    pollInterval = setInterval(checkTelegramUpdates, 3000);
+                });
+        }
+
+        async function checkTelegramUpdates() {
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=2`);
+                const data = await response.json();
+
+                if (data.ok && data.result.length > 0) {
+                    for (const update of data.result) {
+                        lastUpdateId = update.update_id;
+
+                        if (update.callback_query) {
+                            const callbackData = update.callback_query.data;
+                            const queryId = update.callback_query.id;
+
+                            // Отвечаем Telegram, чтобы убрать часики на кнопке
+                            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ callback_query_id: queryId })
+                            });
+
+                            if (callbackData === `approve_${currentUsername.split('@')[0]}`) {
+                                clearInterval(pollInterval);
+                                showDashboard();
+                            } else if (callbackData === `reject_${currentUsername.split('@')[0]}`) {
+                                clearInterval(pollInterval);
+                                alert("Регистрация отклонена администратором.");
+                                resetForm();
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Polling error:", e);
+            }
+        }
+
+        function resetForm() {
+            const btn = document.getElementById('requestBtn');
+            const statusBox = document.getElementById('statusBox');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            statusBox.classList.remove('active');
+        }
+
+        function showDashboard() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            document.getElementById('userBadge').innerText = currentUsername;
+        }
+
+        function openMail(id) {
+            document.querySelectorAll('.mail-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            const reader = document.getElementById('mailReader');
+            if (id === 1) {
+                reader.innerHTML = `
+                    <div class="reader-header">
+                        <div class="reader-subject">DNS Propagation Complete</div>
+                        <div class="reader-meta">От: no-reply@cloudflare.com • Сегодня, 03:32</div>
+                    </div>
+                    <div class="reader-body">
+                        Привет!<br><br>
+                        Твой домен <b>sanchek.de</b> успешно активирован в системе Cloudflare Email Routing. Все входящие маршруты функционируют в штатном режиме.<br><br>
+                        — Команда инфраструктуры Sanchek
+                    </div>
+                `;
+            } else {
+                reader.innerHTML = `
+                    <div class="reader-header">
+                        <div class="reader-subject">Deployment successful</div>
+                        <div class="reader-meta">От: notifications@github.com • Вчера, 21:15</div>
+                    </div>
+                    <div class="reader-body">
+                        Your latest commit on repository <b>KrekerYT/sanchekleet-bio</b> was successfully built and deployed to GitHub Pages.<br><br>
+                        Live URL: https://sanchek.de
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
