@@ -181,19 +181,11 @@
             color: var(--text-main);
         }
 
-        .status-box {
-            margin-top: 16px;
-            padding: 12px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-align: center;
+        /* Скрытое поле секретного ключа реге */
+        .reg-only {
             display: none;
         }
-
-        .status-box.active {
+        .reg-only.active {
             display: block;
         }
 
@@ -383,7 +375,7 @@
                 <div class="brand-subtitle" id="formTitle">Secure Login</div>
             </div>
 
-            <!-- Поля ввода -->
+            <!-- Имя почты -->
             <div class="input-group">
                 <div class="input-field-wrapper">
                     <input type="text" id="userInput" class="input-field" placeholder="username" autocomplete="off" spellcheck="false">
@@ -391,17 +383,21 @@
                 </div>
             </div>
 
+            <!-- Пароль -->
             <div class="input-group">
                 <div class="input-field-wrapper">
                     <input type="password" id="passInput" class="input-field" placeholder="Пароль" autocomplete="current-password">
                 </div>
             </div>
 
-            <button class="btn" id="actionBtn" onclick="handleAuthAction()">Войти</button>
-
-            <div id="statusBox" class="status-box">
-                Ожидание одобрения в Telegram...
+            <!-- Секретный ключ для регистрации (появляется только при создании акка) -->
+            <div class="input-group reg-only" id="regKeyGroup">
+                <div class="input-field-wrapper">
+                    <input type="password" id="regKeyInput" class="input-field" placeholder="Секретный ключ (mailreg)">
+                </div>
             </div>
+
+            <button class="btn" id="actionBtn" onclick="handleAuthAction()">Войти</button>
 
             <div class="switch-auth-mode" id="switchModeText" onclick="toggleMode()">
                 Нет аккаунта? <span>Создать</span>
@@ -456,90 +452,66 @@
     </div>
 
     <script>
-        const BOT_TOKEN = "8759855537:AAGeXnLK-R0Vwb6aQooMVms87JyFQGOVjGQ";
-        const ADMIN_CHAT_ID = "5149127446";
-        const WORKER_URL = "https://sanchek-mail-worker.sanchekleet.workers.dev"; // Твоя готовая ссылка воркера
-
         let isRegisterMode = false;
         let currentEmail = "";
-        let pollInterval = null;
 
         function toggleMode() {
             isRegisterMode = !isRegisterMode;
             const title = document.getElementById('formTitle');
             const btn = document.getElementById('actionBtn');
             const switchText = document.getElementById('switchModeText');
+            const regKeyGroup = document.getElementById('regKeyGroup');
 
             if (isRegisterMode) {
                 title.innerText = "New Account";
                 btn.innerText = "Зарегистрировать";
                 switchText.innerHTML = "Уже есть аккаунт? <span>Войти</span>";
+                regKeyGroup.classList.add('active');
             } else {
                 title.innerText = "Secure Login";
                 btn.innerText = "Войти";
                 switchText.innerHTML = "Нет аккаунта? <span>Создать</span>";
+                regKeyGroup.classList.remove('active');
             }
         }
 
-        async function handleAuthAction() {
+        function handleAuthAction() {
             const user = document.getElementById('userInput').value.trim().toLowerCase();
             const pass = document.getElementById('passInput').value;
 
             if (!user || !pass) {
-                alert("Заполни все поля");
+                alert("Заполни все поля!");
                 return;
             }
 
             currentEmail = `${user}@sanchek.de`;
 
             if (isRegisterMode) {
-                const btn = document.getElementById('actionBtn');
-                const statusBox = document.getElementById('statusBox');
-
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-                statusBox.classList.add('active');
-                statusBox.innerHTML = `Запрос отправлен в Telegram для <b>${currentEmail}</b>...`;
-
-                const text = `🎛 <b>Запрос на регистрацию почты:</b>\n👤 Ящик: <code>${currentEmail}</code>\n🔑 Пароль: <code>${pass}</code>`;
-                const keyboard = {
-                    inline_keyboard: [
-                        [
-                            { text: "✅ Подтвердить", callback_data: `approve_${user}` },
-                            { text: "❌ Отклонить", callback_data: `reject_${user}` }
-                        ]
-                    ]
-                };
-
-                try {
-                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: ADMIN_CHAT_ID,
-                            text: text,
-                            parse_mode: 'HTML',
-                            reply_markup: keyboard
-                        })
-                    });
-
-                    // Сохраняем пароль локально
-                    localStorage.setItem(`pass_${user}`, pass);
-
-                    // Начинаем опрос воркера
-                    startPolling(user);
-
-                } catch (e) {
-                    console.error(e);
-                    alert("Ошибка связи с Telegram API");
-                    resetAuth();
+                const regKey = document.getElementById('regKeyInput').value;
+                
+                // Проверяем секретный ключ
+                if (regKey !== "mailreg") {
+                    alert("Неверный секретный ключ регистрации!");
+                    return;
                 }
 
+                // Проверяем, нет ли уже такого юзера
+                if (localStorage.getItem(`pass_${user}`)) {
+                    alert("Такой почтовый ящик уже существует!");
+                    return;
+                }
+
+                // Сохраняем в локальное хранилище
+                localStorage.setItem(`pass_${user}`, pass);
+                alert("Почта успешно создана! Теперь можешь войти.");
+                toggleMode(); // Переключаем обратно на вход
+
             } else {
+                // Вход
                 const savedPass = localStorage.getItem(`pass_${user}`);
                 
                 if (!savedPass) {
-                    alert("Такой почтовый ящик не зарегистрирован!");
+                    alert("Такой почтовый ящик не найден! Сначала создай его.");
                     return;
                 }
 
@@ -550,36 +522,6 @@
 
                 showDashboard();
             }
-        }
-
-        function startPolling(username) {
-            pollInterval = setInterval(() => checkWorkerStatus(username), 2500);
-        }
-
-        async function checkWorkerStatus(username) {
-            try {
-                const res = await fetch(`${WORKER_URL}/check-status?username=${username}`);
-                const data = await res.json();
-
-                if (data.status === "approved") {
-                    clearInterval(pollInterval);
-                    showDashboard();
-                } else if (data.status === "rejected") {
-                    clearInterval(pollInterval);
-                    alert("Регистрация отклонена администратором.");
-                    resetAuth();
-                }
-            } catch (err) {
-                console.error("Status check error:", err);
-            }
-        }
-
-        function resetAuth() {
-            const btn = document.getElementById('actionBtn');
-            const statusBox = document.getElementById('statusBox');
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            statusBox.classList.remove('active');
         }
 
         function showDashboard() {
