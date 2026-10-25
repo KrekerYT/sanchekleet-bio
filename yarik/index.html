@@ -1,1 +1,700 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Фотоальбом | Ярослав Кистанов</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #070709;
+            --bg-card: #121217;
+            --bg-glass: rgba(18, 18, 24, 0.78);
+            --accent: #7c3aed;
+            --accent-light: #a78bfa;
+            --accent-glow: rgba(124, 58, 237, 0.35);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --radius: 16px;
+        }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            background-image: 
+                radial-gradient(circle at 15% 10%, rgba(124, 58, 237, 0.14), transparent 35%),
+                radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.1), transparent 35%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Шапка сайта */
+        header {
+            text-align: center;
+            padding: 3.5rem 1.25rem 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(124, 58, 237, 0.12);
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            color: var(--accent-light);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .badge span.dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-light);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        h1 {
+            font-size: clamp(2rem, 6vw, 3.6rem);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #ffffff 30%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+            max-width: 540px;
+            margin: 0 auto 1.75rem;
+        }
+
+        /* Панель управления */
+        .controls-wrapper {
+            position: sticky;
+            top: 12px;
+            z-index: 40;
+            display: flex;
+            justify-content: center;
+            padding: 0 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: var(--accent-light);
+            transform: translateY(-1px);
+        }
+
+        .btn.active {
+            background: var(--accent);
+            border-color: var(--accent-light);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .stats-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-right: 1px solid var(--border);
+            margin-right: 4px;
+        }
+
+        .stats-pill b {
+            color: #fff;
+        }
+
+        /* Сетка фотографий */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem 4rem;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 18px;
+        }
+
+        /* Варианты отображения сетки */
+        .gallery-grid.compact {
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px;
+        }
+
+        .gallery-grid.masonry {
+            display: block;
+            column-count: 4;
+            column-gap: 18px;
+        }
+
+        .gallery-grid.masonry .photo-card {
+            margin-bottom: 18px;
+            break-inside: avoid;
+            aspect-ratio: auto;
+        }
+
+        .gallery-grid.masonry .photo-card img {
+            height: auto;
+            display: block;
+        }
+
+        /* Карточка фото */
+        .photo-card {
+            position: relative;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            aspect-ratio: 3 / 4;
+            cursor: pointer;
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        border-color 0.3s ease, 
+                        box-shadow 0.35s ease;
+            user-select: none;
+        }
+
+        .photo-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            border-color: rgba(167, 139, 250, 0.5);
+            box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7), 
+                        0 0 22px var(--accent-glow);
+            z-index: 2;
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.3s ease;
+            background: #181820;
+        }
+
+        .photo-card:hover img {
+            transform: scale(1.06);
+        }
+
+        .card-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0,0,0,0.2) 40%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 14px;
+        }
+
+        .photo-card:hover .card-overlay {
+            opacity: 1;
+        }
+
+        .photo-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #fff;
+            background: rgba(124, 58, 237, 0.75);
+            backdrop-filter: blur(6px);
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        .photo-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(0, 0, 0, 0.55);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        /* Полноэкранный Lightbox */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 8, 0.94);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .lightbox.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lb-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            z-index: 10;
+        }
+
+        .lb-counter {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 6px 14px;
+            border-radius: 99px;
+            border: 1px solid var(--border);
+        }
+
+        .lb-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .lb-icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .lb-icon-btn:hover {
+            background: var(--accent);
+            transform: scale(1.08);
+        }
+
+        .lb-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 65px 16px 65px;
+        }
+
+        .lb-img {
+            max-width: 94vw;
+            max-height: 82vh;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+            transition: transform 0.25s ease, opacity 0.2s ease;
+            user-select: none;
+        }
+
+        .lb-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 15;
+            user-select: none;
+        }
+
+        .lb-nav:hover {
+            background: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .lb-prev { left: 20px; }
+        .lb-next { right: 20px; }
+
+        .lb-bottom {
+            position: absolute;
+            bottom: 18px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: rgba(0, 0, 0, 0.65);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem 3rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Адаптив под телефоны и планшеты */
+        @media (max-width: 1024px) {
+            .gallery-grid.masonry { column-count: 3; }
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 2.2rem 1rem 1.2rem; }
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .gallery-grid.compact {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+            }
+            .gallery-grid.masonry {
+                column-count: 2;
+                column-gap: 10px;
+            }
+            .gallery-grid.masonry .photo-card {
+                margin-bottom: 10px;
+            }
+            .card-overlay {
+                opacity: 1;
+                background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 45%);
+                padding: 8px;
+            }
+            .photo-num { font-size: 0.7rem; padding: 3px 7px; }
+            .photo-time { display: none; }
+            .lb-nav {
+                width: 42px;
+                height: 42px;
+                font-size: 1.1rem;
+                background: rgba(0, 0, 0, 0.55);
+            }
+            .lb-prev { left: 10px; }
+            .lb-next { right: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="badge"><span class="dot"></span> LEGENDARY COLLECTION</div>
+        <h1>Ярослав «Ярик» Кистанов</h1>
+        <p class="subtitle">Официальный золотой архив легендарных кадров. Нажми на любое фото для просмотра на весь экран.</p>
+    </header>
+
+    <div class="controls-wrapper">
+        <div class="controls-bar">
+            <div class="stats-pill">Кадров: <b id="total-count">0</b></div>
+            <button class="btn active" id="btn-grid" onclick="setLayout('grid')">Сетка</button>
+            <button class="btn" id="btn-compact" onclick="setLayout('compact')">Мелко</button>
+            <button class="btn" id="btn-masonry" onclick="setLayout('masonry')">Оригинал</button>
+            <button class="btn" onclick="shufflePhotos()">🔀 Перемешать</button>
+        </div>
+    </div>
+
+    <main class="container">
+        <div class="gallery-grid" id="gallery"></div>
+    </main>
+
+    <!-- Лайтбокс (просмотр фото) -->
+    <div class="lightbox" id="lightbox">
+        <div class="lb-top">
+            <div class="lb-counter" id="lb-counter">1 / 47</div>
+            <div class="lb-actions">
+                <a class="lb-icon-btn" id="lb-download" href="#" download title="Скачать фото">⬇</a>
+                <button class="lb-icon-btn" onclick="closeLightbox()" title="Закрыть (Esc)">✕</button>
+            </div>
+        </div>
+
+        <div class="lb-stage" id="lb-stage" onclick="stageClick(event)">
+            <button class="lb-nav lb-prev" onclick="changePhoto(-1)">❮</button>
+            <img class="lb-img" id="lb-img" src="" alt="Фото Ярика">
+            <button class="lb-nav lb-next" onclick="changePhoto(1)">❯</button>
+        </div>
+
+        <div class="lb-bottom" id="lb-filename">IMG.jpg</div>
+    </div>
+
+    <footer>
+        Фотоальбом Ярослава Кистанова • Адаптивная верстка для ПК и смартфонов
+    </footer>
+
+    <script>
+        // Если фотки лежат в отдельной папке (например "img/"), укажи путь тут:
+        const FOLDER_PATH = ""; 
+
+        // Все файлы со скриншотов (автоматически очищаются от дубликатов через Set)
+        const rawPhotos = [
+            // Скрин 3 (03:08 - 03:06)
+            "IMG_20261025_030825_673.jpg",
+            "IMG_20261025_030820_929.jpg",
+            "IMG_20261025_030816_268.jpg",
+            "IMG_20261025_030814_807.jpg",
+            "IMG_20261025_030805_224.jpg",
+            "IMG_20261025_030756_516.jpg",
+            "IMG_20261025_030754_500.jpg",
+            "IMG_20261025_030753_068.jpg",
+            "IMG_20261025_030752_451.jpg",
+            "IMG_20261025_030745_987.jpg",
+            "IMG_20261025_030739_492.jpg",
+            "IMG_20261025_030735_771.jpg",
+            "IMG_20261025_030728_038.jpg",
+            "IMG_20261025_030659_854.jpg",
+
+            // Скрин 5 (03:06 - 03:05)
+            "IMG_20261025_030655_003.jpg",
+            "IMG_20261025_030634_579.jpg",
+            "IMG_20261025_030637_296.jpg",
+            "IMG_20261025_030632_185.jpg",
+            "IMG_20261025_030630_307.jpg",
+            "IMG_20261025_030620_888.jpg",
+            "IMG_20261025_030621_922.jpg",
+            "IMG_20261025_030619_933.jpg",
+            "IMG_20261025_030613_044.jpg",
+            "IMG_20261025_030611_771.jpg",
+            "IMG_20261025_030608_073.jpg",
+            "IMG_20261025_030529_961.jpg",
+            "IMG_20261025_030526_247.jpg",
+
+            // Скрин 1 (03:05 - 03:03)
+            "IMG_20261025_030517_961.jpg",
+            "IMG_20261025_030514_793.jpg",
+            "IMG_20261025_030448_681.jpg",
+            "IMG_20261025_030444_238.jpg",
+            "IMG_20261025_030452_673.jpg",
+            "IMG_20261025_030433_331.jpg",
+            "IMG_20261025_030428_776.jpg",
+            "IMG_20261025_030358_691.jpg",
+
+            // Скрин 2 (03:02 - 03:01)
+            "IMG_20261025_030252_526.jpg",
+            "IMG_20261025_030241_717.jpg",
+            "IMG_20261025_030236_726.jpg",
+            "IMG_20261025_030327_875.jpg",
+            "IMG_20261025_030233_706.jpg",
+            "IMG_20261025_030222_643.jpg",
+            "IMG_20261025_030235_350.jpg",
+            "IMG_20261025_030216_922.jpg",
+            "IMG_20261025_030208_982.jpg",
+            "IMG_20261025_030200_057.jpg",
+            "IMG_20261025_030153_239.jpg",
+            "IMG_20261025_030106_316.jpg",
+
+            // Скрин 4 (03:01 - 02:59)
+            "IMG_20261025_030109_632.jpg",
+            "IMG_20261025_025952_639.jpg",
+            "IMG_20261025_025921_845.jpg",
+            "IMG_20261025_030102_328.jpg",
+            "IMG_20261025_030100_653.jpg"
+        ];
+
+        // Удаление любых возможных дубликатов
+        let photos = [...new Set(rawPhotos)];
+        let currentIndex = 0;
+
+        const galleryEl = document.getElementById('gallery');
+        const totalCountEl = document.getElementById('total-count');
+        const lightboxEl = document.getElementById('lightbox');
+        const lbImgEl = document.getElementById('lb-img');
+        const lbCounterEl = document.getElementById('lb-counter');
+        const lbFilenameEl = document.getElementById('lb-filename');
+        const lbDownloadEl = document.getElementById('lb-download');
+
+        // Извлекаем красивое время из названия файла IMG_20261025_030825_673.jpg
+        function formatTimeFromFilename(name) {
+            const match = name.match(/_(\d{2})(\d{2})(\d{2})_/);
+            if (!match) return "";
+            return `${match[1]}:${match[2]}:${match[3]}`;
+        }
+
+        function renderGallery() {
+            galleryEl.innerHTML = '';
+            totalCountEl.textContent = photos.length;
+
+            photos.forEach((file, index) => {
+                const card = document.createElement('div');
+                card.className = 'photo-card';
+                card.onclick = () => openLightbox(index);
+
+                const timeStr = formatTimeFromFilename(file);
+
+                card.innerHTML = `
+                    <img src="${FOLDER_PATH}${file}" alt="Ярик #${index + 1}" loading="lazy">
+                    <div class="card-overlay">
+                        <span class="photo-num">#${String(index + 1).padStart(2, '0')}</span>
+                        ${timeStr ? `<span class="photo-time">${timeStr}</span>` : ''}
+                    </div>
+                `;
+                galleryEl.appendChild(card);
+            });
+        }
+
+        // Переключение режимов сетки
+        function setLayout(mode) {
+            galleryEl.classList.remove('compact', 'masonry');
+            document.querySelectorAll('.controls-bar .btn').forEach(b => b.classList.remove('active'));
+
+            if (mode === 'compact') {
+                galleryEl.classList.add('compact');
+                document.getElementById('btn-compact').classList.add('active');
+            } else if (mode === 'masonry') {
+                galleryEl.classList.add('masonry');
+                document.getElementById('btn-masonry').classList.add('active');
+            } else {
+                document.getElementById('btn-grid').classList.add('active');
+            }
+        }
+
+        // Перемешать фотографии
+        function shufflePhotos() {
+            for (let i = photos.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [photos[i], photos[j]] = [photos[j], photos[i]];
+            }
+            renderGallery();
+        }
+
+        // Открыть лайтбокс
+        function openLightbox(index) {
+            currentIndex = index;
+            updateLightbox();
+            lightboxEl.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Закрыть лайтбокс
+        function closeLightbox() {
+            lightboxEl.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function stageClick(e) {
+            if (e.target.id === 'lb-stage') closeLightbox();
+        }
+
+        // Переключение фото в лайтбоксе
+        function changePhoto(dir) {
+            currentIndex = (currentIndex + dir + photos.length) % photos.length;
+            updateLightbox();
+        }
+
+        function updateLightbox() {
+            const file = photos[currentIndex];
+            const fullPath = FOLDER_PATH + file;
+            lbImgEl.style.opacity = '0.3';
+            setTimeout(() => {
+                lbImgEl.src = fullPath;
+                lbImgEl.style.opacity = '1';
+            }, 80);
+
+            lbCounterEl.textContent = `${currentIndex + 1} / ${photos.length}`;
+            lbFilenameEl.textContent = file;
+            lbDownloadEl.href = fullPath;
+        }
+
+        // Клавиатура на ПК (стрелки и Esc)
+        document.addEventListener('keydown', (e) => {
+            if (!lightboxEl.classList.contains('open')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight') changePhoto(1);
+            if (e.key === 'ArrowLeft') changePhoto(-1);
+        });
+
+        // Свайпы пальцем на телефоне
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        lightboxEl.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        lightboxEl.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 45) {
+                if (diff > 0) changePhoto(1); // Свайп влево -> след. фото
+                else changePhoto(-1);         // Свайп вправо -> пред. фото
+            }
+        }, { passive: true });
+
+        // Инициализация
+        renderGallery();
+    </script>
+</body>
+</html>
