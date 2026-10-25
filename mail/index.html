@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanchek mail // Sanchek AUTORIZATION1337</title>
+    <title>S mail // Sanchek Ecosystem</title>
     <style>
         :root {
             --bg-color: #050505;
             --surface-color: #0a0a0a;
-            --surface-glass: rgba(12, 12, 12, 0.8);
+            --surface-glass: rgba(12, 12, 12, 0.85);
             --border-color: rgba(255, 255, 255, 0.08);
             --border-hover: rgba(255, 255, 255, 0.2);
             --text-main: #f3f3f3;
@@ -181,7 +181,6 @@
             color: var(--text-main);
         }
 
-        /* Скрытое поле секретного ключа реге */
         .reg-only {
             display: none;
         }
@@ -189,7 +188,7 @@
             display: block;
         }
 
-        /* Dashboard */
+        /* Dashboard Layout */
         .dashboard-container {
             width: 100vw;
             height: 100vh;
@@ -210,7 +209,7 @@
             font-size: 1.25rem;
             font-weight: 800;
             letter-spacing: -0.02em;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -226,11 +225,25 @@
             font-weight: 500;
         }
 
+        .compose-btn {
+            background: var(--accent);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-bottom: 24px;
+            transition: opacity 0.2s;
+        }
+        .compose-btn:hover { opacity: 0.9; }
+
         .nav-list {
             list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             flex-grow: 1;
         }
 
@@ -248,12 +261,33 @@
             color: var(--text-main);
         }
 
-        .user-profile-badge {
+        .user-profile-footer {
             padding-top: 16px;
             border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .user-profile-badge {
             font-size: 0.85rem;
             color: var(--text-muted);
             word-break: break-all;
+        }
+
+        .logout-btn {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid rgba(255, 69, 58, 0.2);
+            border-radius: 6px;
+            padding: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .logout-btn:hover {
+            background: rgba(255, 69, 58, 0.1);
         }
 
         .main-workspace {
@@ -361,6 +395,54 @@
             line-height: 1.6;
             color: #d1d1d1;
         }
+
+        /* Compose Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .compose-card {
+            width: 500px;
+            background: var(--surface-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+        }
+        .compose-card h3 {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+        .compose-textarea {
+            width: 100%;
+            height: 120px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+            resize: none;
+            margin-bottom: 16px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -371,11 +453,10 @@
     <div id="authScreen" class="screen">
         <div class="auth-card">
             <div class="brand-header">
-                <div class="brand-logo">SM</div>
-                <div class="brand-subtitle" id="formTitle">sanekmail</div>
+                <div class="brand-logo">S</div>
+                <div class="brand-subtitle" id="formTitle">Secure Login</div>
             </div>
 
-            <!-- Имя почты -->
             <div class="input-group">
                 <div class="input-field-wrapper">
                     <input type="text" id="userInput" class="input-field" placeholder="username" autocomplete="off" spellcheck="false">
@@ -383,17 +464,15 @@
                 </div>
             </div>
 
-            <!-- Пароль -->
             <div class="input-group">
                 <div class="input-field-wrapper">
                     <input type="password" id="passInput" class="input-field" placeholder="Пароль" autocomplete="current-password">
                 </div>
             </div>
 
-            <!-- Секретный ключ для регистрации (появляется только при создании акка) -->
             <div class="input-group reg-only" id="regKeyGroup">
                 <div class="input-field-wrapper">
-                    <input type="password" id="regKeyInput" class="input-field" placeholder="Секретный ключ (угадай)">
+                    <input type="password" id="regKeyInput" class="input-field" placeholder="Секретный ключ (mailreg)">
                 </div>
             </div>
 
@@ -412,38 +491,34 @@
                 <div class="sidebar-brand">
                     S mail <span>@sanchek.de</span>
                 </div>
+                <button class="compose-btn" onclick="openComposeModal()">+ Написать письмо</button>
                 <ul class="nav-list">
-                    <li class="nav-item active">Входящие</li>
-                    <li class="nav-item">Отправленные</li>
-                    <li class="nav-item">Черновики</li>
-                    <li class="nav-item">Корзина</li>
+                    <li class="nav-item active" onclick="switchFolder('inbox', this)">Входящие</li>
+                    <li class="nav-item" onclick="switchFolder('sent', this)">Отправленные</li>
+                    <li class="nav-item" onclick="switchFolder('drafts', this)">Черновики</li>
+                    <li class="nav-item" onclick="switchFolder('trash', this)">Корзина</li>
                 </ul>
-                <div class="user-profile-badge" id="userBadge">
-                    user@sanchek.de
+                <div class="user-profile-footer">
+                    <div class="user-profile-badge" id="userBadge">user@sanchek.de</div>
+                    <button class="logout-btn" onclick="logout()">Выйти из аккаунта</button>
                 </div>
             </div>
 
             <div class="main-workspace">
                 <div class="topbar">
-                    <input type="text" class="search-bar" placeholder="Поиск по сообщениям...">
+                    <input type="text" class="search-bar" placeholder="Поиск по сообщениям..." oninput="filterMails(this.value)">
                 </div>
                 <div class="content-area">
-                    <div class="mail-list">
-                        <div class="mail-item active" onclick="openMail(1)">
-                            <div class="mail-sender">Cloudflare Security</div>
-                            <div class="mail-subject">DNS Propagation Complete</div>
-                            <div class="mail-snippet">Your domain sanchek.de is now successfully active...</div>
-                        </div>
+                    <div class="mail-list" id="mailListContainer">
+                        <!-- Список писем рендерится через JS -->
                     </div>
                     <div class="mail-reader" id="mailReader">
                         <div class="reader-header">
-                            <div class="reader-subject">DNS Propagation Complete</div>
-                            <div class="reader-meta">От: no-reply@cloudflare.com • Сегодня, 03:32</div>
+                            <div class="reader-subject">Выберите письмо</div>
+                            <div class="reader-meta">—</div>
                         </div>
                         <div class="reader-body">
-                            Привет!<br><br>
-                            Твой домен <b>sanchek.de</b> успешно активирован в системе Cloudflare Email Routing.<br><br>
-                            — Команда инфраструктуры Sanchek
+                            Нажмите на любое письмо в списке слева, чтобы прочитать его содержимое.
                         </div>
                     </div>
                 </div>
@@ -451,9 +526,48 @@
         </div>
     </div>
 
+    <!-- МОДАЛКА НАПИСАТЬ ПИСЬМО -->
+    <div class="modal-overlay" id="composeModal">
+        <div class="compose-card">
+            <h3>Новое сообщение</h3>
+            <div class="input-group">
+                <div class="input-field-wrapper">
+                    <input type="text" id="composeTo" class="input-field" placeholder="Получатель (например: support@roblox.com)">
+                </div>
+            </div>
+            <div class="input-group">
+                <div class="input-field-wrapper">
+                    <input type="text" id="composeSubject" class="input-field" placeholder="Тема письма">
+                </div>
+            </div>
+            <textarea id="composeBody" class="compose-textarea" placeholder="Текст сообщения..."></textarea>
+            <div class="modal-actions">
+                <button class="btn" style="margin-top:0;" onclick="sendMail()">Отправить</button>
+                <button class="btn" style="margin-top:0; background:var(--surface-color); color:var(--text-main); border:1px solid var(--border-color);" onclick="closeComposeModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let isRegisterMode = false;
-        let currentEmail = "";
+        let currentUser = null;
+        let currentFolder = 'inbox';
+        let activeMailId = null;
+
+        // База писем в памяти (хранится в localStorage для каждого юзера)
+        let sampleInbox = [
+            { id: 1, folder: 'inbox', sender: 'Cloudflare Security', subject: 'DNS Propagation Complete', time: 'Сегодня, 03:32', body: 'Привет!<br><br>Твой домен <b>sanchek.de</b> успешно активирован в системе Cloudflare Email Routing.<br><br>— Команда инфраструктуры Sanchek' },
+            { id: 2, folder: 'inbox', sender: 'Roblox Verification', subject: 'Your Roblox security code', time: 'Вчера, 19:12', body: 'Hello,<br><br>Your verification code is: <b>839-201</b>. Do not share this code with anyone.<br><br>— Roblox Team' }
+        ];
+
+        // Проверка при загрузке страницы: если юзер уже входил — сразу открываем почту
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('logged_user');
+            if (savedUser) {
+                currentUser = savedUser;
+                showDashboard();
+            }
+        });
 
         function toggleMode() {
             isRegisterMode = !isRegisterMode;
@@ -484,55 +598,157 @@
                 return;
             }
 
-            currentEmail = `${user}@sanchek.de`;
-
             if (isRegisterMode) {
                 const regKey = document.getElementById('regKeyInput').value;
-                
-                // Проверяем секретный ключ
                 if (regKey !== "mailreg") {
-                    alert("Неверный секретный ключ регистрации!");
+                    alert("Неверный секретный ключ регистрации (нужен mailreg)!");
                     return;
                 }
 
-                // Проверяем, нет ли уже такого юзера
                 if (localStorage.getItem(`pass_${user}`)) {
-                    alert("Такой почтовый ящик уже существует!");
+                    alert("Такой ящик уже существует!");
                     return;
                 }
 
-                // Сохраняем в локальное хранилище
                 localStorage.setItem(`pass_${user}`, pass);
-                alert("Почта успешно создана! Теперь можешь войти.");
-                toggleMode(); // Переключаем обратно на вход
-
+                alert("Почта создана! Теперь войди в нее.");
+                toggleMode();
             } else {
-                // Вход
                 const savedPass = localStorage.getItem(`pass_${user}`);
-                
-                if (!savedPass) {
-                    alert("Такой почтовый ящик не найден! Сначала создай его.");
+                if (!savedPass || savedPass !== pass) {
+                    alert("Неверный логин или пароль!");
                     return;
                 }
 
-                if (savedPass !== pass) {
-                    alert("Неверный пароль!");
-                    return;
-                }
-
+                currentUser = `${user}@sanchek.de`;
+                localStorage.setItem('logged_user', currentUser);
                 showDashboard();
             }
+        }
+
+        function logout() {
+            localStorage.removeItem('logged_user');
+            currentUser = null;
+            document.getElementById('dashboardScreen').classList.add('hidden');
+            document.getElementById('authScreen').classList.remove('hidden');
         }
 
         function showDashboard() {
             document.getElementById('authScreen').classList.add('hidden');
             document.getElementById('dashboardScreen').classList.remove('hidden');
-            document.getElementById('userBadge').innerText = currentEmail;
+            document.getElementById('userBadge').innerText = currentUser;
+            loadMails();
+        }
+
+        // Управление папками
+        function switchFolder(folder, element) {
+            currentFolder = folder;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            loadMails();
+        }
+
+        function getMails() {
+            const key = `mails_${currentUser}`;
+            let data = localStorage.getItem(key);
+            if (!data) {
+                // Инициализируем стартовыми письмами для нового юзера
+                localStorage.setItem(key, JSON.stringify(sampleInbox));
+                return sampleInbox;
+            }
+            return JSON.parse(data);
+        }
+
+        function saveMails(mails) {
+            localStorage.setItem(`mails_${currentUser}`, JSON.stringify(mails));
+        }
+
+        function loadMails(searchQuery = '') {
+            const container = document.getElementById('mailListContainer');
+            const mails = getMails().filter(m => m.folder === currentFolder);
+
+            const filtered = mails.filter(m => 
+                m.sender.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                m.subject.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Папка пуста</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(m => `
+                <div class="mail-item ${activeMailId === m.id ? 'active' : ''}" onclick="openMail(${m.id})">
+                    <div class="mail-sender">${m.sender}</div>
+                    <div class="mail-subject">${m.subject}</div>
+                    <div class="mail-snippet">${m.body.replace(/<[^>]*>?/gm, '')}</div>
+                </div>
+            `).join('');
         }
 
         function openMail(id) {
-            document.querySelectorAll('.mail-item').forEach(el => el.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            activeMailId = id;
+            const mails = getMails();
+            const mail = mails.find(m => m.id === id);
+            if (!mail) return;
+
+            loadMails(); // Обновляем подсветку активного
+
+            document.getElementById('mailReader').innerHTML = `
+                <div class="reader-header">
+                    <div class="reader-subject">${mail.subject}</div>
+                    <div class="reader-meta">От: ${mail.sender} • ${mail.time}</div>
+                </div>
+                <div class="reader-body">
+                    ${mail.body}
+                </div>
+            `;
+        }
+
+        function filterMails(query) {
+            loadMails(query);
+        }
+
+        // Модалка создания письма
+        function openComposeModal() {
+            document.getElementById('composeModal').classList.add('active');
+        }
+
+        function closeComposeModal() {
+            document.getElementById('composeModal').classList.remove('active');
+            document.getElementById('composeTo').value = '';
+            document.getElementById('composeSubject').value = '';
+            document.getElementById('composeBody').value = '';
+        }
+
+        function sendMail() {
+            const to = document.getElementById('composeTo').value.trim();
+            const subject = document.getElementById('composeSubject').value.trim();
+            const body = document.getElementById('composeBody').value.trim();
+
+            if (!to || !subject || !body) {
+                alert("Заполни все поля письма!");
+                return;
+            }
+
+            const mails = getMails();
+            const newMail = {
+                id: Date.now(),
+                folder: 'sent',
+                sender: to,
+                subject: subject,
+                time: 'Только что',
+                body: body.replace(/\n/g, '<br>')
+            };
+
+            mails.unshift(newMail);
+            saveMails(mails);
+            closeComposeModal();
+            alert("Письмо успешно отправлено!");
+
+            if (currentFolder === 'sent') {
+                loadMails();
+            }
         }
     </script>
 </body>
