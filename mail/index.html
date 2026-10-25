@@ -458,7 +458,7 @@
     <script>
         const BOT_TOKEN = "8759855537:AAGeXnLK-R0Vwb6aQooMVms87JyFQGOVjGQ";
         const ADMIN_CHAT_ID = "5149127446";
-        const WORKER_URL = "https://sanchek-mail-worker.твой-воркер.workers.dev"; // Замени на реальный URL своего воркера!
+        const WORKER_URL = "https://sanchek-mail-worker.sanchekleet.workers.dev"; // Твоя готовая ссылка воркера
 
         let isRegisterMode = false;
         let currentEmail = "";
@@ -526,7 +526,7 @@
                     // Сохраняем пароль локально
                     localStorage.setItem(`pass_${user}`, pass);
 
-                    // Начинаем опрос воркера вместо Telegram getUpdates
+                    // Начинаем опрос воркера
                     startPolling(user);
 
                 } catch (e) {
