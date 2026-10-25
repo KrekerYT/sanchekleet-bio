@@ -232,25 +232,11 @@
             font-weight: 700;
             font-size: 0.9rem;
             cursor: pointer;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
             transition: all 0.2s;
             box-shadow: 0 4px 15px var(--accent-glow);
         }
         .compose-btn:hover { transform: translateY(-1px); }
-
-        .test-roblox-btn {
-            background: rgba(255, 51, 102, 0.15);
-            color: #ff3366;
-            border: 1px solid rgba(255, 51, 102, 0.4);
-            border-radius: 10px;
-            padding: 10px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            margin-bottom: 20px;
-            transition: all 0.2s;
-        }
-        .test-roblox-btn:hover { background: rgba(255, 51, 102, 0.25); }
 
         .nav-list {
             list-style: none;
@@ -379,7 +365,6 @@
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             transition: background 0.15s ease;
-            position: relative;
         }
 
         .mail-item:hover { background: rgba(255, 255, 255, 0.03); }
@@ -488,7 +473,6 @@
                     S mail <span>@sanchek.de</span>
                 </div>
                 <button class="compose-btn" onclick="openComposeModal()">+ Написать письмо</button>
-                <button class="test-roblox-btn" onclick="simulateRobloxMail()">⚡ Симуляция Roblox</button>
                 <ul class="nav-list" id="navList">
                     <li class="nav-item active" onclick="switchFolder('inbox', this)">Входящие</li>
                     <li class="nav-item" onclick="switchFolder('sent', this)">Отправленные</li>
@@ -526,7 +510,7 @@
             <h3>Новое сообщение</h3>
             <div class="input-group">
                 <div class="input-field-wrapper">
-                    <input type="text" id="composeTo" class="input-field" placeholder="Получатель (например: support@roblox.com)">
+                    <input type="text" id="composeTo" class="input-field" placeholder="Получатель (например: service@domain.com)">
                 </div>
             </div>
             <div class="input-group">
@@ -550,7 +534,7 @@
 
         let sampleInbox = [
             { id: 1, folder: 'inbox', sender: 'Cloudflare Security', subject: 'DNS Propagation Complete', time: '03:32', body: 'Твой домен <b>sanchek.de</b> успешно активирован.' },
-            { id: 2, folder: 'inbox', sender: 'Roblox Verification', subject: 'Your Roblox security code', time: '19:12', body: 'Verification code: <b>992-104</b>' }
+            { id: 2, folder: 'inbox', sender: 'System Notice', subject: 'Welcome to S mail ecosystem', time: '12:00', body: 'Интерфейс успешно инициализирован.' }
         ];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -660,7 +644,6 @@
 
         function saveMails(mails) { localStorage.setItem(`mails_${currentUser}`, JSON.stringify(mails)); }
 
-        // Функция получения точного текущего времени (часы:минуты)
         function getCurrentTimeString() {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
@@ -679,7 +662,6 @@
                 return;
             }
 
-            // Каждое сообщение выводится отдельно со своим временем, без стакания
             container.innerHTML = filtered.map(m => `
                 <div class="mail-item ${activeMailId === m.id ? 'active' : ''}" onclick="openMail(${m.id})">
                     <div class="mail-item-header">
@@ -713,24 +695,6 @@
                 loadMails();
                 btn.innerText = "🔄 Обновить";
             }, 500);
-        }
-
-        // Кнопка быстрой симуляции прилета письма от Roblox для проверки интерфейса
-        function simulateRobloxMail() {
-            const mails = getMails();
-            const randomCode = Math.floor(100000 + Math.random() * 900000);
-            const newMail = {
-                id: Date.now(),
-                folder: 'inbox',
-                sender: 'Roblox Verification',
-                subject: 'Your Roblox security code',
-                time: getCurrentTimeString(),
-                body: `Hello,<br><br>Your verification code is: <b>${randomCode}</b><br><br>— Roblox Team`
-            };
-            mails.unshift(newMail);
-            saveMails(mails);
-            if (currentFolder === 'inbox') loadMails();
-            alert("✨ Симуляция: Новое письмо от Roblox успешно получено!");
         }
 
         function filterMails(q) { loadMails(q); }
