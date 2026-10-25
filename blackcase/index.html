@@ -91,7 +91,7 @@ input,select{font:inherit;color:#fff;background:var(--p2);border:1px solid var(-
 <div class="main">
 <div class="top"><div id="tick"></div><div class="me" id="usr"></div></div>
 <main id="v"></main>
-<div class="note">Симулятор на виртуальной валюте: пополнение и вывод реальных денег не поддерживаются. Не связан с Valve и Steam. Картинки и названия предметов загружаются из открытых источников, цены ориентировочные.</div>
+<div class="note">Сайт не связан с Valve и Steam. Картинки и названия предметов загружаются из открытых источников, цены ориентировочные.</div>
 </div></div>
 <div id="t"></div>
 <script>
@@ -230,8 +230,8 @@ function sell(i){const x=S.inv[i];if(!x)return;S.bal+=x.p;S.stt.s+=x.p;logOut(x,
 function sellIds(ids){let s=0;ids.forEach(u=>{const i=S.inv.findIndex(x=>x.u==u);if(i>=0){const x=S.inv[i];s+=x.p;logOut(x,'sold');S.inv.splice(i,1)}});S.bal+=s;S.stt.s+=s;save();bal();snd.sell()}
 function goUp(i){if(busy)return;up=U0();up.sel=[i];tab='up';oc=-1;render();scrollTo(0,0)}
 function setCnt(n){if(busy)return;cnt=n;document.querySelectorAll('.cnt b').forEach((b,i)=>b.classList.toggle('on',i+1==n));const c=CS[oc];document.querySelectorAll('.cpv').forEach(e=>e.textContent=f(c.pr*n));snd.click()}
-const UMH=['Мгновенный результат (~1 сек)','Классическое вращение (~5 сек)','Азартный режим: долгое вращение с замедлением (~12 сек)'];
-const umh=()=>`<div class="um">${[['⚡ Быстрый',0],['Обычный',1],['🎰 Азартный',2]].map(([l,m])=>`<button class="chip ${um==m?'on':''}" onclick="setMode(${m})">${l}</button>`).join('')}</div><div class="umh">${UMH[um]}</div>`;
+const UMH=['Мгновенная крутка','Обычная крутка','Азартная крутка'];
+const umh=()=>`<div class="um">${[['Быстрая',0],['Обычная',1],['Азартная',2]].map(([l,m])=>`<button class="chip ${um==m?'on':''}" onclick="setMode(${m})">${l}</button>`).join('')}</div><div class="umh">${UMH[um]}</div>`;
 function setMode(m){if(busy)return;um=m;S.um=m;save();$('#umm').innerHTML=umh();snd.click()}
 const UN=['Kuzya','n1ghtfox','Dimon_77','sh0t','Vasyl','Reaper','AlexM','toxic','Lena','mrBlack'],drops=[];
 function addDrop(){const it=pick(rnd(CS));drops.unshift(it);drops.length=Math.min(drops.length,14);$('#tick').innerHTML=drops.map(x=>`<div class="mi" style="--c:${RC[x.r]}"><img src="${img(x.im)}" referrerpolicy="no-referrer" alt=""><small>${f(x.p)}</small></div>`).join('')}
@@ -254,13 +254,14 @@ up:()=>`<h2 class="ut">МОДЕРНИЗАЦИЯ ОРУЖИЯ</h2><div id="u1">${
 <div class="ug"><div class="up-p slid"><span>Добавить баланс</span><input type="range" min="0" max="${Math.floor(S.bal)}" value="${up.add}" oninput="up.add=+this.value;ref()"><b id="sv">${f(up.add)}</b></div><div class="c"><div id="umm">${umh()}</div><button class="btn big" onclick="upg()">⬆ ПРОКАЧАТЬ</button></div><div class="row mlt">${[2,5,10].map(m=>`<button class="chip" onclick="setM(${m})">x${m}</button>`).join('')}${[30,50,75].map(p=>`<button class="chip" onclick="setP(${p})">${p}%</button>`).join('')}<button class="chip" onclick="shuf()">🔀</button></div></div>
 <div class="lists"><div class="up-p"><div class="flt"><b>Мои предметы (${S.inv.length} шт)</b></div>${fbar('mf')}<div class="list scroll" id="mi">${mil()}</div></div><div class="up-p"><div class="flt"><b>Выберите предмет</b></div>${fbar('tf',1)}<div class="list scroll" id="tg">${tgl()}</div></div></div></div>`,
 inv:()=>`<h2 class="pt2">ПРОФИЛЬ</h2><div id="ip"></div><h2 class="pt2" style="margin-top:6px">ВАШИ ПРЕДМЕТЫ</h2><div id="ifs"></div>${fbar('inv')}<div class="drops" id="il"></div><div id="im"></div>`};
-const TK=Array.from({length:72},(_,i)=>{const a=i*5*Math.PI/180,l=i%6==0?10:5,s=Math.sin(a),c=Math.cos(a);return`<line x1="${150+s*118}" y1="${150-c*118}" x2="${150+s*(118+l)}" y2="${150-c*(118+l)}"/>`}).join('');
+const TK=Array.from({length:72},(_,i)=>{const a=i*5*Math.PI/180,l=i%6==0?10:5,s=Math.sin(a),c=Math.cos(a);return`<line x1="${150+s*128}" y1="${150-c*128}" x2="${150+s*(128+l)}" y2="${150-c*(128+l)}"/>`}).join('');
 const stake=()=>up.sel.reduce((s,i)=>s+(S.inv[i]?S.inv[i].p:0),0)+Math.min(up.add,S.bal);
 const chn=()=>{const s=stake();return up.tg&&s>0?Math.min(75,s/up.tg.p*95):0};
 function cat(){if(!CAT){CAT=[];for(const s of Object.values(SK)){if(skipSt(s))continue;const a=wl(s);for(const w of a.length?a:['']){if(pm&&!usd(hn(s,w)))continue;CAT.push(mk(s,tierS(s),w));if(s.stattrak&&pm){const pu=usd(stn(s.name)+' ('+w+')');if(pu){const x=mk(s,tierS(s),w);x.n=stn(dn(s));x.e=stn(s.name);x.p=+(pu*RATE).toFixed(2);CAT.push(x)}}}}CAT.sort((x,y)=>x.p-y.p)}return CAT}
+const chC=c=>c<10?'#ff6a3d':c<30?'#ffb347':c<55?'#d9e84a':'#52e08a',chT=c=>c<=0?'нет шанса':c<10?'очень низкий шанс':c<30?'низкий шанс':c<55?'средний шанс':'высокий шанс';
 function u1(){const ch=chn(),L=2*Math.PI*98;
 return`<div class="ug"><div class="up-p c"><div class="hd">Выберите до 6 предметов на апгрейд</div><div class="sg">${up.sel.length?up.sel.map(i=>`<div class="pick" onclick="tog(${i})">${card(S.inv[i])}</div>`).join(''):'<div class="ph">Выберите предметы ниже или добавьте баланс</div>'}</div><div class="sm">Ставка: <b>${f(stake())}</b></div></div>
-<div class="dial"><svg viewBox="0 0 300 300"><g stroke="rgba(255,255,255,.28)" stroke-width="2">${TK}</g><circle cx="150" cy="150" r="98" fill="none" stroke="#262932" stroke-width="16"/><circle cx="150" cy="150" r="98" fill="none" stroke="#e9ebf1" stroke-width="16" stroke-dasharray="${ch/100*L} ${L}" transform="rotate(-90 150 150)" style="filter:drop-shadow(0 0 6px #fff)"/><defs><radialGradient id="dg"><stop offset="0" stop-color="#2d2f39"/><stop offset="1" stop-color="#121317"/></radialGradient></defs><circle cx="150" cy="150" r="78" fill="url(#dg)"/><g id="pt"><path d="M150 68L139 42H161Z" fill="#fff" style="filter:drop-shadow(0 0 5px #fff)"/></g><text x="150" y="152" fill="#fff" font-size="30" font-weight="800" text-anchor="middle">${ch.toFixed(2)}%</text><text x="150" y="174" fill="#8d93a1" font-size="12" text-anchor="middle">шанс</text></svg></div>
+<div class="dial"><svg viewBox="0 0 300 300"><g stroke="rgba(255,255,255,.28)" stroke-width="2">${TK}</g><circle cx="150" cy="150" r="98" fill="none" stroke="#262932" stroke-width="16"/><circle cx="150" cy="150" r="98" fill="none" stroke="url(#ag)" stroke-width="16" stroke-dasharray="${ch/100*L} ${L}" transform="rotate(${90-ch*1.8} 150 150)" style="filter:drop-shadow(0 0 7px #ff5a2a)"/><defs><radialGradient id="dg"><stop offset="0" stop-color="#2d2f39"/><stop offset="1" stop-color="#121317"/></radialGradient><linearGradient id="ag" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#e5251b"/></linearGradient></defs><circle cx="150" cy="150" r="78" fill="url(#dg)"/><g fill="#8d93a1" font-size="10" text-anchor="middle"><text x="150" y="92">100%</text><text x="150" y="216">0%</text><text x="82" y="154">50%</text><text x="218" y="154">50%</text></g><g id="pt"><path d="M150 42L141 20L150 26L159 20Z" fill="#52e08a" style="filter:drop-shadow(0 0 5px #52e08a)"/></g><text id="ct1" x="150" y="152" fill="${chC(ch)}" font-size="${ch>=10?30:28}" font-weight="800" text-anchor="middle">${ch.toFixed(2)}%</text><text id="ct2" x="150" y="174" fill="${chC(ch)}" font-size="12" font-weight="700" text-anchor="middle">${chT(ch)}</text></svg></div>
 <div class="up-p c"><div class="hd">Выберите оружие, которое хотите получить</div>${up.tg?`<div class="sg one">${card(up.tg)}</div><div class="sm">Цена: <b>${f(up.tg.p)}</b></div>`:'<div class="ph">Выберите предмет из каталога или нажмите множитель</div>'}</div></div>`}
 const mil=()=>{const o=up.mf,L=flist(S.inv.map((x,i)=>({...x,_i:i})),o),m=o.n;return(L.slice(0,m).map(x=>`<div class="pick ${up.sel.includes(x._i)?'sel':''}" onclick="tog(${x._i})">${card(x)}</div>`).join('')||'<div class="ph">'+(S.inv.length?'Ничего не найдено':'Нет предметов. Откройте любой кейс')+'</div>')+more('mf',L.length,m)}
 function tgl(){const st=stake(),o=up.tf,L=flist(cat(),o,st>0?st*1.01:0),m=o.n;window.TL=L.slice(0,m);
@@ -273,11 +274,14 @@ function setP(p){if(busy)return;const s=stake();if(!(s>0))return t('Сначал
 function shuf(){if(busy)return;const s=stake();if(!(s>0))return t('Сначала выберите предметы или добавьте баланс');const L=cat().filter(x=>x.p>s*1.2&&x.p<=s*10);if(!L.length)return t('Нет подходящих предметов');up.tg=rnd(L);ref()}
 function upg(){if(busy)return;const s=stake(),ch=chn();if(!(s>0))return t('Выберите предметы или добавьте баланс');if(!up.tg)return t('Выберите оружие, которое хотите получить');if(ch<1)return t('Шанс меньше 1%: выберите предмет дешевле или увеличьте ставку');
 const add=Math.min(up.add,S.bal);if(add>0&&!can(add))return;busy=1;S.bal-=add;bal();snd.init();snd.click();
-const a=Math.random()*360,win=a<ch*3.6,D=RM?300:[900,4500,12000][um],T=[2,4,9][um],P=[3,4,4.2][um],from=ang,to=from+T*360+((a-from%360)+360)%360,pt=$('#pt');let lk=Math.floor(from/5);
-anim(D,p=>{const A=from+(to-from)*(1-Math.pow(1-p,P));pt.style.transform=`rotate(${A}deg)`;const k=Math.floor(A/5);if(k!==lk){lk=k;snd.tick(.6)}},()=>{ang=to;setTimeout(()=>{
-[...up.sel].sort((x,y)=>y-x).forEach(i=>{if(S.inv[i]){logOut(S.inv[i],'up');S.inv.splice(i,1)}});S.stt.u++;const g=up.tg;
-if(win){gain({...g},'up');snd.win(Math.max(2,g.r));t('Успех! '+g.n)}else{snd.lose();t('Не повезло, ставка сгорела')}
-up=U0();ang=0;busy=0;save();render()},um==2?900:um==1?350:0)})}
+const a=Math.random()*360,win=Math.abs(a-180)<ch*1.8,D=RM?300:[900,4500,12000][um],T=[2,4,9][um],P=[3,4,4.2][um],from=ang,to=from+T*360+((a-from%360)+360)%360,pt=$('#pt');let lk=Math.floor(from/5);
+anim(D,p=>{const A=from+(to-from)*(1-Math.pow(1-p,P));pt.style.transform=`rotate(${A}deg)`;const k=Math.floor(A/5);if(k!==lk){lk=k;snd.tick(.6)}},()=>{ang=to;const g=up.tg,c1=$('#ct1'),c2=$('#ct2');
+if(c1){c1.setAttribute('fill',win?'#52e08a':'#ff5a4a');c1.setAttribute('font-size',win?'28':'34');c1.textContent=win?'СУПЕР!':'УВЫ';c2.setAttribute('fill',win?'#d9f7e3':'#c9ceea');c2.textContent=win?'вы это сделали':'попробуем еще?'}
+if(win){snd.win(Math.max(2,g.r))}else{snd.lose()}
+setTimeout(()=>{
+[...up.sel].sort((x,y)=>y-x).forEach(i=>{if(S.inv[i]){logOut(S.inv[i],'up');S.inv.splice(i,1)}});S.stt.u++;
+if(win){gain({...g},'up');t('Успех! '+g.n)}else{t('Не повезло, ставка сгорела')}
+up=U0();ang=0;busy=0;save();render()},RM?900:2600)})}
 const sKey=x=>x.n.replace(/^★ /,'').replace('StatTrak™ ','');
 function flist(L,o,loDef){const q=o.q.toLowerCase(),lo=o.lo!==''?+o.lo:(loDef||0),hi=o.hi!==''?+o.hi:1e12;
 const R=L.filter(x=>(!o.k||x.k==o.k)&&x.p>=lo&&x.p<=hi&&((x.n+' '+(x.e||'')).toLowerCase().includes(q)));
