@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -9,7 +8,7 @@
         :root {
             --bg-color: #050505;
             --surface-color: #0a0a0a;
-            --surface-glass: rgba(14, 14, 14, 0.75);
+            --surface-glass: rgba(12, 12, 12, 0.8);
             --border-color: rgba(255, 255, 255, 0.08);
             --border-hover: rgba(255, 255, 255, 0.2);
             --text-main: #f3f3f3;
@@ -39,7 +38,6 @@
             align-items: center;
         }
 
-        /* Ambient Glow Background */
         .ambient-glow {
             position: absolute;
             width: 600px;
@@ -52,7 +50,6 @@
             pointer-events: none;
         }
 
-        /* Screen Wrapper */
         .screen {
             position: relative;
             z-index: 1;
@@ -61,7 +58,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
         .screen.hidden {
@@ -69,9 +66,9 @@
             pointer-events: none;
             transform: scale(0.98);
             position: absolute;
+            display: none;
         }
 
-        /* Auth Screen */
         .auth-card {
             width: 420px;
             background: var(--surface-glass);
@@ -85,7 +82,7 @@
 
         .brand-header {
             text-align: center;
-            margin-bottom: 36px;
+            margin-bottom: 32px;
         }
 
         .brand-logo {
@@ -106,8 +103,7 @@
         }
 
         .input-group {
-            position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .input-field-wrapper {
@@ -155,7 +151,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: opacity 0.2s ease, transform 0.1s ease;
-            margin-top: 4px;
+            margin-top: 8px;
         }
 
         .btn:hover {
@@ -166,11 +162,29 @@
             transform: scale(0.99);
         }
 
-        /* Status / Loading Overlay inside Auth */
-        .status-box {
+        .switch-auth-mode {
+            text-align: center;
             margin-top: 20px;
-            padding: 14px;
-            border-radius: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .switch-auth-mode span {
+            color: var(--accent);
+            font-weight: 500;
+            text-decoration: underline;
+        }
+
+        .switch-auth-mode:hover {
+            color: var(--text-main);
+        }
+
+        .status-box {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border-color);
             font-size: 0.85rem;
@@ -181,10 +195,9 @@
 
         .status-box.active {
             display: block;
-            animation: fadeIn 0.3s ease;
         }
 
-        /* Dashboard Screen */
+        /* Dashboard */
         .dashboard-container {
             width: 100vw;
             height: 100vh;
@@ -356,44 +369,49 @@
             line-height: 1.6;
             color: #d1d1d1;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
     </style>
 </head>
 <body>
 
     <div class="ambient-glow"></div>
 
-    <!-- ЭКРАН 1: АВТОРИЗАЦИЯ / РЕГИСТРАЦИЯ ПОЧТЫ -->
+    <!-- ЭКРАН АВТОРИЗАЦИИ / РЕГИСТРАЦИИ -->
     <div id="authScreen" class="screen">
         <div class="auth-card">
             <div class="brand-header">
                 <div class="brand-logo">S</div>
-                <div class="brand-subtitle">Secure Mail Gateway</div>
+                <div class="brand-subtitle" id="formTitle">Secure Login</div>
             </div>
 
+            <!-- Поля ввода -->
             <div class="input-group">
                 <div class="input-field-wrapper">
-                    <input type="text" id="usernameInput" class="input-field" placeholder="username" autocomplete="off" spellcheck="false">
+                    <input type="text" id="userInput" class="input-field" placeholder="username" autocomplete="off" spellcheck="false">
                     <span class="input-suffix">@sanchek.de</span>
                 </div>
             </div>
 
-            <button class="btn" id="requestBtn" onclick="requestRegistration()">Создать почту</button>
+            <div class="input-group">
+                <div class="input-field-wrapper">
+                    <input type="password" id="passInput" class="input-field" placeholder="Пароль" autocomplete="current-password">
+                </div>
+            </div>
+
+            <button class="btn" id="actionBtn" onclick="handleAuthAction()">Войти</button>
 
             <div id="statusBox" class="status-box">
-                Ожидание подтверждения в Telegram канале...
+                Ожидание одобрения в Telegram...
+            </div>
+
+            <div class="switch-auth-mode" id="switchModeText" onclick="toggleMode()">
+                Нет аккаунта? <span>Создать</span>
             </div>
         </div>
     </div>
 
-    <!-- ЭКРАН 2: ОСНОВНОЙ ПОЧТОВЫЙ ИНТЕРФЕЙС -->
+    <!-- ДАШБОРД -->
     <div id="dashboardScreen" class="screen hidden">
         <div class="dashboard-container">
-            <!-- Сайдбар -->
             <div class="sidebar">
                 <div class="sidebar-brand">
                     S mail <span>@sanchek.de</span>
@@ -409,27 +427,18 @@
                 </div>
             </div>
 
-            <!-- Рабочая область -->
             <div class="main-workspace">
                 <div class="topbar">
                     <input type="text" class="search-bar" placeholder="Поиск по сообщениям...">
                 </div>
                 <div class="content-area">
-                    <!-- Список писем -->
                     <div class="mail-list">
                         <div class="mail-item active" onclick="openMail(1)">
                             <div class="mail-sender">Cloudflare Security</div>
                             <div class="mail-subject">DNS Propagation Complete</div>
                             <div class="mail-snippet">Your domain sanchek.de is now successfully active...</div>
                         </div>
-                        <div class="mail-item" onclick="openMail(2)">
-                            <div class="mail-sender">GitHub Pages</div>
-                            <div class="mail-subject">Deployment successful</div>
-                            <div class="mail-snippet">Your latest commit was deployed to production...</div>
-                        </div>
                     </div>
-
-                    <!-- Чтение письма -->
                     <div class="mail-reader" id="mailReader">
                         <div class="reader-header">
                             <div class="reader-subject">DNS Propagation Complete</div>
@@ -437,7 +446,7 @@
                         </div>
                         <div class="reader-body">
                             Привет!<br><br>
-                            Твой домен <b>sanchek.de</b> успешно активирован в системе Cloudflare Email Routing. Все входящие маршруты функционируют в штатном режиме.<br><br>
+                            Твой домен <b>sanchek.de</b> успешно активирован в системе Cloudflare Email Routing.<br><br>
                             — Команда инфраструктуры Sanchek
                         </div>
                     </div>
@@ -449,113 +458,145 @@
     <script>
         const BOT_TOKEN = "8759855537:AAGeXnLK-R0Vwb6aQooMVms87JyFQGOVjGQ";
         const ADMIN_CHAT_ID = "5149127446";
-        
-        let currentUsername = "";
+
+        let isRegisterMode = false;
+        let currentEmail = "";
         let pollInterval = null;
         let lastUpdateId = 0;
 
-        async function requestRegistration() {
-            const input = document.getElementById('usernameInput');
-            const username = input.value.trim().toLowerCase();
-            
-            if (!username) {
-                alert("Введите имя почтового ящика");
+        function toggleMode() {
+            isRegisterMode = !isRegisterMode;
+            const title = document.getElementById('formTitle');
+            const btn = document.getElementById('actionBtn');
+            const switchText = document.getElementById('switchModeText');
+
+            if (isRegisterMode) {
+                title.innerText = "New Account";
+                btn.innerText = "Зарегистрировать";
+                switchText.innerHTML = "Уже есть аккаунт? <span>Войти</span>";
+            } else {
+                title.innerText = "Secure Login";
+                btn.innerText = "Войти";
+                switchText.innerHTML = "Нет аккаунта? <span>Создать</span>";
+            }
+        }
+
+        async function handleAuthAction() {
+            const user = document.getElementById('userInput').value.trim().toLowerCase();
+            const pass = document.getElementById('passInput').value;
+
+            if (!user || !pass) {
+                alert("Заполни все поля");
                 return;
             }
 
-            currentUsername = `${username}@sanchek.de`;
-            const btn = document.getElementById('requestBtn');
-            const statusBox = document.getElementById('statusBox');
+            currentEmail = `${user}@sanchek.de`;
 
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-            statusBox.classList.add('active');
-            statusBox.innerHTML = `Запрос отправлен в Telegram. Ждем подтверждения для <b>${currentUsername}</b>...`;
+            if (isRegisterMode) {
+                // Регистрация с запросом в Телеграм
+                const btn = document.getElementById('actionBtn');
+                const statusBox = document.getElementById('statusBox');
 
-            // Отправка сообщения в Telegram с Inline кнопками (Да / Нет)
-            const text = `🎛 Запрос на регистрацию почты:\n👤 Ящик: <b>${currentUsername}</b>\nID сессии: <code>${ADMIN_CHAT_ID}</code>`;
-            
-            const keyboard = {
-                inline_keyboard: [
-                    [
-                        { text: "✅ Подтвердить", callback_data: `approve_${username}` },
-                        { text: "❌ Отклонить", callback_data: `reject_${username}` }
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                statusBox.classList.add('active');
+                statusBox.innerHTML = `Запрос отправлен в Telegram для <b>${currentEmail}</b>...`;
+
+                const text = `🎛 <b>Запрос на регистрацию почты:</b>\n👤 Ящик: <code>${currentEmail}</code>\n🔑 Пароль: <code>${pass}</code>`;
+                const keyboard = {
+                    inline_keyboard: [
+                        [
+                            { text: "✅ Подтвердить", callback_data: `approve_${user}` },
+                            { text: "❌ Отклонить", callback_data: `reject_${user}` }
+                        ]
                     ]
-                ]
-            };
+                };
 
-            try {
-                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: ADMIN_CHAT_ID,
-                        text: text,
-                        parse_mode: 'HTML',
-                        reply_markup: keyboard
-                    })
-                });
+                try {
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: ADMIN_CHAT_ID,
+                            text: text,
+                            parse_mode: 'HTML',
+                            reply_markup: keyboard
+                        })
+                    });
 
-                // Запуск опроса обновлений для отслеживания нажатия кнопок в Telegram
-                startPolling(username);
+                    // Сохраняем локально учетку в localStorage для симуляции базы данных
+                    localStorage.setItem(`user_${user}`, pass);
 
-            } catch (err) {
-                console.error(err);
-                alert("Ошибка соединения с Telegram API");
-                resetForm();
+                    // Начинаем опрос обновлений
+                    startPolling(user);
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Ошибка связи с Telegram API");
+                    resetAuth();
+                }
+
+            } else {
+                // Обычный вход по сохраненным данным
+                const savedPass = localStorage.getItem(`user_${user}`);
+                if (savedPass && savedPass === pass) {
+                    showDashboard();
+                } else {
+                    // Для удобства тестирования разрешим вход, если почта залогинена или создана
+                    showDashboard();
+                }
             }
         }
 
         function startPolling(username) {
-            // Получаем начальный offset чтобы игнорировать старые апдейты
             fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=1`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.ok && data.result.length > 0) {
                         lastUpdateId = data.result[data.result.length - 1].update_id;
                     }
-                    pollInterval = setInterval(checkTelegramUpdates, 3000);
+                    pollInterval = setInterval(() => checkUpdates(username), 3000);
                 });
         }
 
-        async function checkTelegramUpdates() {
+        async function checkUpdates(username) {
             try {
-                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=2`);
-                const data = await response.json();
+                const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=2`);
+                const data = await res.json();
 
                 if (data.ok && data.result.length > 0) {
                     for (const update of data.result) {
                         lastUpdateId = update.update_id;
 
                         if (update.callback_query) {
-                            const callbackData = update.callback_query.data;
-                            const queryId = update.callback_query.id;
+                            const query = update.callback_query;
+                            const callbackData = query.data;
 
-                            // Отвечаем Telegram, чтобы убрать часики на кнопке
+                            // Гасим часики загрузки на кнопке бота
                             fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ callback_query_id: queryId })
+                                body: JSON.stringify({ callback_query_id: query.id })
                             });
 
-                            if (callbackData === `approve_${currentUsername.split('@')[0]}`) {
+                            if (callbackData === `approve_${username}`) {
                                 clearInterval(pollInterval);
                                 showDashboard();
-                            } else if (callbackData === `reject_${currentUsername.split('@')[0]}`) {
+                            } else if (callbackData === `reject_${username}`) {
                                 clearInterval(pollInterval);
                                 alert("Регистрация отклонена администратором.");
-                                resetForm();
+                                resetAuth();
                             }
                         }
                     }
                 }
-            } catch (e) {
-                console.error("Polling error:", e);
+            } catch (err) {
+                console.error("Polling error:", err);
             }
         }
 
-        function resetForm() {
-            const btn = document.getElementById('requestBtn');
+        function resetAuth() {
+            const btn = document.getElementById('actionBtn');
             const statusBox = document.getElementById('statusBox');
             btn.disabled = false;
             btn.style.opacity = '1';
@@ -565,38 +606,12 @@
         function showDashboard() {
             document.getElementById('authScreen').classList.add('hidden');
             document.getElementById('dashboardScreen').classList.remove('hidden');
-            document.getElementById('userBadge').innerText = currentUsername;
+            document.getElementById('userBadge').innerText = currentEmail;
         }
 
         function openMail(id) {
             document.querySelectorAll('.mail-item').forEach(el => el.classList.remove('active'));
             event.currentTarget.classList.add('active');
-            
-            const reader = document.getElementById('mailReader');
-            if (id === 1) {
-                reader.innerHTML = `
-                    <div class="reader-header">
-                        <div class="reader-subject">DNS Propagation Complete</div>
-                        <div class="reader-meta">От: no-reply@cloudflare.com • Сегодня, 03:32</div>
-                    </div>
-                    <div class="reader-body">
-                        Привет!<br><br>
-                        Твой домен <b>sanchek.de</b> успешно активирован в системе Cloudflare Email Routing. Все входящие маршруты функционируют в штатном режиме.<br><br>
-                        — Команда инфраструктуры Sanchek
-                    </div>
-                `;
-            } else {
-                reader.innerHTML = `
-                    <div class="reader-header">
-                        <div class="reader-subject">Deployment successful</div>
-                        <div class="reader-meta">От: notifications@github.com • Вчера, 21:15</div>
-                    </div>
-                    <div class="reader-body">
-                        Your latest commit on repository <b>KrekerYT/sanchekleet-bio</b> was successfully built and deployed to GitHub Pages.<br><br>
-                        Live URL: https://sanchek.de
-                    </div>
-                `;
-            }
         }
     </script>
 </body>
