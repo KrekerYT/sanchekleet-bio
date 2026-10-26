@@ -103,7 +103,7 @@ const CI=['case1.jpg','case2.jpg'];
 /* ===== Источники данных (грузятся в браузере) ===== */
 const SRC='https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/',PRICES='https://prices.csgotrader.app/latest/prices_v6.json',NBU='https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json';
 const $=s=>document.querySelector(s),rnd=a=>a[Math.random()*a.length|0],sl=ms=>new Promise(r=>setTimeout(r,ms));
-const RC=['#4b69ff','#8847ff','#d32ce6','#eb4b4b','#ffd700'],RN=['Mil-Spec','Restricted','Classified','Covert','Rare Special'],BASE=[79.92,15.98,3.2,.64,.26],EST=[.5,3,12,60,400];
+const RC=['#4b69ff','#8847ff','#d32ce6','#eb4b4b','#ffd700'],RN=['Mil-Spec','Restricted','Classified','Covert','Rare Special'],BASE=[79.92,15.98,3.2,.64,.26],EST=[.4,2,7,28,180],PM=.65;
 const WN=['Factory New','Minimal Wear','Field-Tested','Well-Worn','Battle-Scarred'],WW=[3,7,33,24,33],WR=['Прямо с завода','Немного поношенное','После полевых испытаний','Поношенное','Закалённое в боях'],WA=['FN','MW','FT','WW','BS'],TM={'Mil-Spec Grade':0,'Restricted':1,'Classified':2,'Covert':3};
 (function(){const p=new URLSearchParams(location.search),c=p.get('openid.claimed_id'),m=c&&c.match(/\/openid\/id\/(\d{17})$/);if(m&&p.get('openid.mode')=='id_res'){try{localStorage.setItem('bc_id',m[1])}catch(e){}history.replaceState(null,'',location.pathname)}})();
 let ID='';try{ID=localStorage.getItem('bc_id')||''}catch(e){}
@@ -121,7 +121,7 @@ const PV=o=>{if(o==null)return 0;if(typeof o=='object')return PV(o.price)||PV(o.
 PK=['skinport','csgotrader','csmoney','buff163','bitskins','lootfarm','swapgg','cstrade','skinbaron','csgoempire','waxpeer','white'],
 TOPN={'AWP | Dragon Lore':1450,'AWP | Gungnir':1400,'M4A4 | Howl':1300,'AK-47 | Wild Lotus':1000,'AWP | Medusa':900,'M4A1-S | Knight':650,'AK-47 | Fire Serpent':450,'M4A4 | Poseidon':260,'AWP | Fade':120};
 function pv(p){const s=p.steam||{};let v=+s.last_24h||+s.last_7d||+s.last_30d||+s.last_90d;if(v)return v;for(const k of PK){v=PV(p[k]);if(v)return v}for(const k in p){v=PV(p[k]);if(v)return v}return 0}
-function usd(h){const p=PR[h];if(!p)return null;return pv(p)||null}
+function usd(h){const p=PR[h];if(!p)return null;const v=pv(p);return v?v*PM:null}
 const hn=(s,w)=>w?s.name+' ('+w+')':s.name,dn=s=>s.ru||s.name;
 function pUSD(s,w,t){const v=usd(hn(s,w));if(v)return v;let h=2166136261;for(const c of s.id+'|'+w){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}const u=((h>>>0)%100000)/100000,k=[1,.8,.62,.5,.42][WN.indexOf(w)]||1;return EST[t]*Math.exp((u-.5)*2.4)*k}
 const wl=s=>(s.wears||[]).map(w=>w.name);
@@ -158,9 +158,9 @@ const c2=B.map(v=>itm(v));c2.push(...spread(stOf(B,1200),4));
 const SER='Серийные кейсы',FIR='Фирменные кейсы',mc=(n,pr,im,pl,rtp,g,gs,l,col)=>{const c=mkCase(n,pr,im,pl,rtp);c.g=g;c.gs=gs;c.fb=crate(l,col);return c};
 const VA=vars(isG),VB=vars(s=>!/Equipment|Sticker/.test(s.category.name)),band=(V,n,lo,hi)=>{const W=V.filter(v=>v.p>=lo&&v.p<=hi),o=[];for(const t of geo(lo,hi,n)){const v=nr(W,t,used,R);if(v){used.add(v.s.id);o.push(itm(v))}}return o};
 /* [название, цена, картинка, [шт,от,до] основные, [шт,от,до] дорогие, подпись, цвет] */
-const FB=[['Major 2021',249,'major2021.jpg',[34,80,1250],[4,1250,6000],'M21','#ffb347'],['Major 2022',333,'major2022.jpg',[31,120,1250],[6,1250,8000],'M22','#d32ce6'],['Major 2024',399,'major2024.jpg',[32,150,1500],[6,1500,10000],'M24','#8847ff'],['Major 2025',449,'major2025.jpg',[34,200,1800],[6,1800,15000],'M25','#eb4b4b'],['Euro 2020',199,'euro2020.jpg',[30,60,900],[4,900,4000],'E20','#4b69ff']];
-const br=FB.map(([n,pr,im,a,b,l,col])=>mc(n,pr,im,[...band(VA,...a),...band(VB,...b)],.88,FIR,'ФИРМЕННЫЙ КЕЙС',l,col));
-return[mc('Первый',25,CI[0],c1,.5,SER,'СЕРИЙНЫЙ КЕЙС','№1','#8e93a1'),mc('Мечта авапера',67,CI[1],c2,.5,SER,'СЕРИЙНЫЙ КЕЙС','AWP','#8e93a1'),...br].filter(c=>c.pool.length)}
+const FB=[['Major 2021',249,'major2021.png',[34,80,1250],[4,1250,6000],'M21','#ffb347'],['Major 2022',333,'major2022.png',[31,120,1250],[6,1250,8000],'M22','#d32ce6'],['Major 2024',399,'major2024.png',[32,150,1500],[6,1500,10000],'M24','#8847ff'],['Major 2025',449,'major2025.png',[34,200,1800],[6,1800,15000],'M25','#eb4b4b'],['Euro 2020',199,'euro2020.png',[30,60,900],[4,900,4000],'E20','#4b69ff']];
+const br=FB.map(([n,pr,im,a,b,l,col])=>mc(n,pr,im,[...band(VA,...a),...band(VB,...b)],.62,FIR,'ФИРМЕННЫЙ КЕЙС',l,col));
+return[mc('Первый',25,CI[0],c1,.35,SER,'СЕРИЙНЫЙ КЕЙС','№1','#8e93a1'),mc('Мечта авапера',67,CI[1],c2,.35,SER,'СЕРИЙНЫЙ КЕЙС','AWP','#8e93a1'),...br].filter(c=>c.pool.length)}
 function pick(c){let r=Math.random()*c.tot,i=0;while(i<c.pool.length-1&&r>=c.ws[i]){r-=c.ws[i];i++}const x=c.pool[i];return{n:x.n,im:x.im,r:x.r,w:x.w,p:x.p}}
 const ab=w=>WA[WN.indexOf(w)]||'';
 const card=x=>{const p=x.n.split(' | ');return`<div class="it" style="--c:${RC[x.r]}"><em title="${x.w}">${ab(x.w)}</em><img src="${img(x.im)}" loading="lazy" referrerpolicy="no-referrer" alt=""><small>${p[0]}</small><b>${p[1]||'Обычный'}</b><i>${f(x.p)}</i></div>`};
