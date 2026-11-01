@@ -10,7 +10,6 @@ const NEKRONIUM_DEFAULT_CONFIG = {
     brandName: "NEKRONIUM",
     loaderName: "NekroniumLoader.exe",
     loaderVersion: "V3.4.1 LIVE",
-    loaderArchivePass: "nekronium",
     currency: "₽"
   },
   products: [
@@ -20,9 +19,7 @@ const NEKRONIUM_DEFAULT_CONFIG = {
       game: "Sky In Flames",
       status: "Undetected",
       features: [
-        "Aimbot & Smooth Targeting (Legit / Rage)",
-        "Visuals: Box ESP, Skeleton, Health, Chams",
-        "Triggerbot & Recoil Control System (RCS)",
+        "Visuals: Box ESP, Icon ESP, WallHack",
         "Обход сигнатурных проверок и античитов"
       ],
       tiers: [
@@ -39,7 +36,6 @@ const NEKRONIUM_DEFAULT_CONFIG = {
       features: [
         "Полный обход блокировок по железу (HWID)",
         "Смена серийных номеров SSD / HDD, BIOS, Motherboard, MAC",
-        "Совместим с Vanguard, EAC, BattlEye, FaceIT",
         "Работает без переустановки Windows"
       ],
       tiers: [
@@ -48,13 +44,12 @@ const NEKRONIUM_DEFAULT_CONFIG = {
     },
     {
       id: "guide-bypass",
-      name: "👻 ГАЙД НА ОБХОД БАНА (БЕЗ ПОКУПКИ ИГРЫ)",
+      name: "ГАЙД НА ОБХОД БАНА (БЕЗ ПОКУПКИ ИГРЫ)",
       game: "EXCLUSIVE MANUAL",
       status: "Working",
       features: [
         "Пошаговая методика 100% снятия банов",
         "Обход без необходимости повторно покупать игру",
-        "Очистка скрытых следов, реестра и сетевых адаптеров",
         "Пожизненный доступ к гайду и обновлениям"
       ],
       tiers: [
@@ -63,6 +58,11 @@ const NEKRONIUM_DEFAULT_CONFIG = {
     }
   ]
 };
+
+// Экспорт в глобальный объект window для браузера
+if (typeof window !== "undefined") {
+  window.NEKRONIUM_DEFAULT_CONFIG = NEKRONIUM_DEFAULT_CONFIG;
+}
 
 // Экспорт для Node.js если потребуется
 if (typeof module !== "undefined" && module.exports) {
