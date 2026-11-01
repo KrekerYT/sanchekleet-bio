@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEKRONIUM // Private Software & Client Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow effects -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Header / Navigation -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <div class="brand-logo" onclick="switchTab('store')">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">NEKRONIUM<span class="accent-dot">.</span>DEV</span>
+      </div>
+
+      <nav class="nav-links">
+        <button class="nav-item active" onclick="switchTab('store')" data-tab="store">Товары & Каталог</button>
+        <button class="nav-item" onclick="switchTab('dashboard')" data-tab="dashboard">Личный кабинет</button>
+        <button class="nav-item nav-admin-btn" id="navAdminBtn" onclick="switchTab('admin')" data-tab="admin" style="display: none;">
+          <span class="badge-admin-dot"></span> Админ-Панель
+        </button>
+      </nav>
+
+      <div class="nav-auth-area" id="navAuthArea">
+        <!-- Renders dynamically: Login/Register buttons or User Badge -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container main-content">
+
+    <!-- TAB 1: STORE / CATALOG (PUBLIC / CLIENT) -->
+    <section id="tab-store" class="tab-pane active">
+      <div class="hero-banner">
+        <div class="hero-tag"><span class="pulse-indicator"></span> СТАТУС: UNDETECTED // ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ СЕГОДНЯ</div>
+        <h1 class="hero-title">Приватное программное обеспечение <br><span class="gradient-text">нового поколения</span></h1>
+        <p class="hero-subtitle">Мгновенный доступ после оплаты, удобный лоадер, защита по HWID и гибкая система заморозки подписки.</p>
+      </div>
+
+      <div class="section-heading">
+        <h2>Доступные продукты</h2>
+        <span class="sub-heading">Выберите подходящий софт и тарифный план</span>
+      </div>
+
+      <div class="products-grid" id="productsGrid">
+        <!-- Dynamically rendered products -->
+      </div>
+    </section>
+
+    <!-- TAB 2: CLIENT DASHBOARD -->
+    <section id="tab-dashboard" class="tab-pane">
+      <div id="dashboardAuthPrompt" class="auth-prompt-card" style="display: none;">
+        <div class="prompt-icon">🔒</div>
+        <h2>Требуется авторизация</h2>
+        <p>Войдите в аккаунт или зарегистрируйтесь, чтобы получить доступ к личному кабинету, подпискам и лоадеру.</p>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="openAuthModal('login')">Войти</button>
+          <button class="btn btn-secondary" onclick="openAuthModal('register')">Регистрация</button>
+        </div>
+      </div>
+
+      <div id="dashboardContent" class="dashboard-layout" style="display: none;">
+        <!-- User Summary Profile Card -->
+        <div class="glass-card user-profile-card">
+          <div class="profile-header">
+            <div class="avatar-box">
+              <span id="userAvatarLetter">U</span>
+            </div>
+            <div class="profile-info">
+              <div class="user-meta">
+                <span class="user-name" id="profileUsername">Username</span>
+                <span class="badge badge-uid" id="profileUid">UID: #1001</span>
+                <span class="badge badge-role" id="profileRole">USER</span>
+              </div>
+              <div class="hwid-status">
+                <span class="status-indicator-dot"></span>
+                <span id="profileHwid">HWID: Не привязан (привязка при 1-м запуске лоадера)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-balance-box">
+            <div class="balance-labels">
+              <span class="label">Текущий баланс</span>
+              <span class="value" id="profileBalance">0.00 ₽</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openTopUpModal()">+ Пополнить баланс</button>
+          </div>
+        </div>
+
+        <!-- Dashboard Grid: Active Subscription & Loader Download -->
+        <div class="dashboard-grid">
+          <!-- Active Subscription Card -->
+          <div class="glass-card sub-card">
+            <div class="card-title-row">
+              <h3>⚡ Моя подписка</h3>
+              <span id="subStatusBadge" class="badge badge-inactive">НЕТ ПОДПИСКИ</span>
+            </div>
+
+            <div class="sub-details" id="subDetailsArea">
+              <div class="detail-row">
+                <span class="detail-label">Продукт:</span>
+                <span class="detail-val" id="subProductName">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Осталось времени:</span>
+                <span class="detail-val countdown-timer" id="subTimeRemaining">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Окончание:</span>
+                <span class="detail-val" id="subExpiresAt">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Режим заморозки:</span>
+                <span class="detail-val" id="subFreezeState">Не активна</span>
+              </div>
+            </div>
+
+            <div class="sub-actions">
+              <button id="freezeToggleBtn" class="btn btn-warning" onclick="toggleSubscriptionFreeze()" disabled>
+                ❄️ Заморозить подписку
+              </button>
+              <button class="btn btn-secondary btn-outline" onclick="resetUserHwid()">
+                🔄 Сбросить HWID
+              </button>
+            </div>
+            <div class="freeze-notice">
+              💡 Заморозка останавливает таймер подписки. Вы сможете разморозить её в любой момент.
+            </div>
+          </div>
+
+          <!-- Download Loader Card -->
+          <div class="glass-card loader-card">
+            <div class="card-title-row">
+              <h3>📦 Скачать клиент (Лоадер)</h3>
+              <span class="badge badge-success"><span class="pulse-indicator"></span> V3.4.1 LIVE</span>
+            </div>
+            <p class="loader-desc">
+              Автоматический инжектор с защитой ядра, обходом сигнатурных проверок и автообновлением. Доступен для загрузки при активной подписке на аккаунте.
+            </p>
+
+            <div class="loader-action">
+              <button class="btn btn-primary btn-lg btn-glow" id="downloadLoaderBtn" onclick="downloadLoader()">
+                📥 Скачать NekroniumLoader.exe
+              </button>
+              <span class="download-subtext">Пароль к архиву: <code>nekronium</code> • SHA-256 Verified</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ADMIN PANEL (RESTRICTED) -->
+    <section id="tab-admin" class="tab-pane">
+      <div class="admin-wrapper">
+        <div class="admin-header">
+          <div>
+            <h2>🛡️ Панель управления Администратора</h2>
+            <p class="sub-heading">Управление пользователями, заморозка/снос подписок и настройка прайсов</p>
+          </div>
+          <div class="admin-quick-stats">
+            <div class="stat-pill">Всего пользователей: <strong id="statTotalUsers">0</strong></div>
+            <div class="stat-pill">Всего на балансах: <strong id="statTotalBalance">0 ₽</strong></div>
+            <div class="stat-pill">Активных подписок: <strong id="statActiveSubs">0</strong></div>
+          </div>
+        </div>
+
+        <!-- Admin Subtabs Navigation -->
+        <div class="admin-tabs-nav">
+          <button class="btn btn-secondary btn-sm active" id="adminSubtabBtnUsers" onclick="switchAdminSubtab('users')">
+            👥 Управление пользователями
+          </button>
+          <button class="btn btn-secondary btn-sm" id="adminSubtabBtnPrices" onclick="switchAdminSubtab('prices')">
+            ⚙️ Прайсы & Товары (Конфиг)
+          </button>
+        </div>
+
+        <!-- SUBTAB 1: USERS TABLE -->
+        <div id="adminPaneUsers" class="admin-subpane active">
+          <div class="glass-card table-card">
+            <div class="table-toolbar">
+              <input type="text" id="adminUserSearch" placeholder="Поиск по UID или логину..." oninput="filterAdminUsers()">
+              <button class="btn btn-secondary btn-sm" onclick="renderAdminTable()">🔄 Обновить список</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>UID</th>
+                    <th>Логин</th>
+                    <th>Роль</th>
+                    <th>Баланс</th>
+                    <th>Подписка</th>
+                    <th>Остаток</th>
+                    <th>Статус</th>
+                    <th>HWID</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody id="adminUsersTableBody">
+                  <!-- Dynamically generated rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 2: CONFIG & PRICES EDITOR -->
+        <div id="adminPanePrices" class="admin-subpane" style="display: none;">
+          <div class="glass-card">
+            <div class="card-title-row">
+              <h3>🏷️ Конфигурация товаров и прайс-листа</h3>
+              <span class="badge badge-warning">⚡ Мгновенное применение</span>
+            </div>
+            <p class="sub-heading" style="margin-bottom: 20px;">
+              Здесь вы можете изменить цены на любые тарифы, названия и статусы товаров. Изменения сразу отобразятся в каталоге у всех клиентов.
+            </p>
+
+            <div id="configProductsList" class="config-products-list">
+              <!-- Dynamically populated from config.js -->
+            </div>
+
+            <div class="config-actions-bar">
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary" onclick="saveAdminPriceConfig()">💾 Сохранить прайсы</button>
+                <button class="btn btn-secondary" onclick="resetConfigToDefault()">🔄 Сбросить к config.js</button>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-sm" onclick="exportConfigJson()">📋 Экспорт JSON</button>
+                <button class="btn btn-secondary btn-sm" onclick="importConfigJsonPrompt()">📥 Импорт JSON</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- AUTH MODAL (LOGIN / REGISTER) -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeAuthModal()">✕</button>
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" id="modalTabLogin" onclick="switchAuthMode('login')">Вход</button>
+        <button class="modal-tab-btn" id="modalTabRegister" onclick="switchAuthMode('register')">Регистрация</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group">
+          <label for="authUsername">Логин</label>
+          <input type="text" id="authUsername" required placeholder="Введите логин" autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="authPassword">Пароль</label>
+          <input type="password" id="authPassword" required placeholder="Введите пароль" autocomplete="current-password">
+        </div>
+
+        <div id="authNotice" class="auth-notice" style="display: none;"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">Войти в аккаунт</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOP-UP BALANCE MODAL -->
+  <div class="modal-overlay" id="topUpModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeTopUpModal()">✕</button>
+      <h3>💳 Пополнение баланса</h3>
+      <p class="sub-heading">Выберите сумму для пополнения счета</p>
+
+      <div class="quick-amounts">
+        <button type="button" class="amount-btn" onclick="setTopUpAmount(350)">350 ₽</button>
+        <button type="button" class="amount-btn" onclick="setTopUpAmount(700)">700 ₽</button>
+        <button type="button" class="amount-btn" onclick="setTopUpAmount(1500)">1 500 ₽</button>
+        <button type="button" class="amount-btn" onclick="setTopUpAmount(3000)">3 000 ₽</button>
+      </div>
+
+      <div class="form-group">
+        <label for="topUpAmountInput">Сумма пополнения (₽)</label>
+        <input type="number" id="topUpAmountInput" min="50" max="50000" value="350">
+      </div>
+
+      <div class="payment-methods">
+        <div class="method active">Банковская карта (СБП / МИР)</div>
+        <div class="method">Криптовалюта (USDT / TON)</div>
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="processTopUp()">Пополнить счет</button>
+    </div>
+  </div>
+
+  <!-- ADMIN EDIT USER MODAL -->
+  <div class="modal-overlay" id="adminUserModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeAdminUserModal()">✕</button>
+      <h3>🛠️ Редактирование пользователя: <span id="modalTargetUser">User</span></h3>
+      <input type="hidden" id="modalTargetUserId">
+
+      <div class="form-group">
+        <label>Изменить баланс (₽)</label>
+        <div class="input-inline">
+          <input type="number" id="modalUserBalance" value="0">
+          <button class="btn btn-secondary btn-sm" onclick="quickAddBalance(500)">+500</button>
+          <button class="btn btn-secondary btn-sm" onclick="quickAddBalance(1000)">+1000</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Добавить / Изменить дни подписки</label>
+        <div class="input-inline">
+          <input type="number" id="modalUserSubDays" value="0" placeholder="Количество дней">
+          <button class="btn btn-secondary btn-sm" onclick="quickAddDays(7)">+7 дн.</button>
+          <button class="btn btn-secondary btn-sm" onclick="quickAddDays(30)">+30 дн.</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Действия с подпиской</label>
+        <div class="input-inline">
+          <button type="button" class="btn btn-warning btn-sm" id="modalBtnFreezeToggle" onclick="adminModalToggleFreeze()">
+            ❄️ Заморозить / Разморозить
+          </button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="adminModalWipeSub()">
+            ❌ Снести сабку
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Управление HWID</label>
+        <button type="button" class="btn btn-secondary btn-block" onclick="adminResetHwid()">Сбросить HWID пользователя</button>
+      </div>
+
+      <div class="modal-actions-row">
+        <button type="button" class="btn btn-primary" onclick="saveAdminUserData()">Сохранить изменения</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
