@@ -28,9 +28,7 @@ const FALLBACK_PRODUCTS = [
     game: "Sky In Flames",
     status: "Undetected",
     features: [
-      "Aimbot & Smooth Targeting (Legit / Rage)",
-      "Visuals: Box ESP, Skeleton, Health, Chams",
-      "Triggerbot & Recoil Control System (RCS)",
+      "Visuals: Box ESP, Icon ESP, WallHack",
       "Обход сигнатурных проверок и античитов"
     ],
     tiers: [
@@ -47,7 +45,6 @@ const FALLBACK_PRODUCTS = [
     features: [
       "Полный обход блокировок по железу (HWID)",
       "Смена серийных номеров SSD / HDD, BIOS, Motherboard, MAC",
-      "Совместим с Vanguard, EAC, BattlEye, FaceIT",
       "Работает без переустановки Windows"
     ],
     tiers: [
@@ -56,13 +53,12 @@ const FALLBACK_PRODUCTS = [
   },
   {
     id: "guide-bypass",
-    name: "👻 ГАЙД НА ОБХОД БАНА (БЕЗ ПОКУПКИ ИГРЫ)",
+    name: "ГАЙД НА ОБХОД БАНА (БЕЗ ПОКУПКИ ИГРЫ)",
     game: "EXCLUSIVE MANUAL",
     status: "Working",
     features: [
       "Пошаговая методика 100% снятия банов",
       "Обход без необходимости повторно покупать игру",
-      "Очистка скрытых следов, реестра и сетевых адаптеров",
       "Пожизненный доступ к гайду и обновлениям"
     ],
     tiers: [
@@ -522,13 +518,6 @@ function updateDashboardView() {
     roleBadge.className = 'badge badge-role';
   }
 
-  const hwidEl = document.getElementById('profileHwid');
-  if (currentUser.hwid) {
-    hwidEl.textContent = `HWID: ${currentUser.hwid}`;
-  } else {
-    hwidEl.textContent = 'HWID: Не привязан (привязка при 1-м запуске)';
-  }
-
   // Subscription Details
   renderSubscriptionCard();
 }
@@ -611,9 +600,17 @@ function toggleSubscriptionFreeze() {
   }
 
   const now = Date.now();
+  const FREEZE_COOLDOWN_MS = 10 * 24 * 3600 * 1000; // 10 days cooldown
 
   if (!sub.isFrozen) {
-    // Freeze logic
+    // Check 10-day cooldown
+    if (sub.lastFrozenAt && (now - sub.lastFrozenAt) < FREEZE_COOLDOWN_MS) {
+      const msLeft = FREEZE_COOLDOWN_MS - (now - sub.lastFrozenAt);
+      const daysLeft = Math.ceil(msLeft / (24 * 3600 * 1000));
+      showToast(`Заморозка доступна 1 раз в 10 дней! Подождите ещё ${daysLeft} дн.`, 'error');
+      return;
+    }
+
     if (sub.expiresAt <= now) {
       showToast('Невозможно заморозить истекшую подписку', 'error');
       return;
@@ -622,6 +619,7 @@ function toggleSubscriptionFreeze() {
     sub.remainingSeconds = remaining;
     sub.isFrozen = true;
     sub.frozenAt = now;
+    sub.lastFrozenAt = now;
     saveUsersToStorage();
     renderSubscriptionCard();
     showToast('Подписка успешно заморожена! Таймер остановлен.', 'info');
@@ -635,24 +633,6 @@ function toggleSubscriptionFreeze() {
     renderSubscriptionCard();
     showToast('Подписка разморожена! Доступ возобновлен.', 'success');
   }
-}
-
-function resetUserHwid() {
-  if (!currentUser) return;
-  const now = Date.now();
-  const COOLDOWN_MS = 24 * 3600 * 1000; // 24 hours
-
-  if (currentUser.lastHwidReset && (now - currentUser.lastHwidReset) < COOLDOWN_MS) {
-    const hoursLeft = Math.ceil((COOLDOWN_MS - (now - currentUser.lastHwidReset)) / (3600 * 1000));
-    showToast(`Сброс HWID доступен раз в 24ч. Подождите ещё ${hoursLeft} ч.`, 'error');
-    return;
-  }
-
-  currentUser.hwid = null;
-  currentUser.lastHwidReset = now;
-  saveUsersToStorage();
-  updateDashboardView();
-  showToast('HWID успешно сброшен! Запустите клиент для новой привязки.', 'success');
 }
 
 function downloadLoader() {
@@ -669,16 +649,6 @@ function downloadLoader() {
   if (currentUser.subscription.isFrozen) {
     showToast('Ваша подписка заморожена. Разморозьте её перед запуском софта.', 'warning');
     return;
-  }
-
-  // Auto-bind HWID if first time
-  if (!currentUser.hwid) {
-    const mockHwid = 'HWID-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
-                     Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
-                     Math.random().toString(36).substring(2, 6).toUpperCase();
-    currentUser.hwid = mockHwid;
-    saveUsersToStorage();
-    updateDashboardView();
   }
 
   // Download client executable directly
@@ -787,8 +757,6 @@ function renderAdminTable() {
       }
     }
 
-    const hwidDisplay = u.hwid ? `<code style="font-size: 0.75rem;">${u.hwid}</code>` : '<span style="color: #64748b;">Не привязан</span>';
-
     const hasSub = u.subscription !== null && u.subscription !== undefined;
     const isFrozen = hasSub && u.subscription.isFrozen;
     const freezeIcon = isFrozen ? '☀️' : '❄️';
@@ -803,7 +771,6 @@ function renderAdminTable() {
         <td>${u.subscription ? u.subscription.productName : '—'}</td>
         <td style="font-family: var(--font-mono); font-size: 0.85rem;">${timeLeftText}</td>
         <td>${subStatusText}</td>
-        <td>${hwidDisplay}</td>
         <td>
           <div class="table-actions-cell">
             <button class="btn btn-secondary btn-icon" title="Редактировать" onclick="openAdminUserEdit(${u.uid})">⚙️</button>
@@ -933,18 +900,6 @@ function quickAddBalance(amount) {
 function quickAddDays(days) {
   const input = document.getElementById('modalUserSubDays');
   input.value = Number(input.value || 0) + days;
-}
-
-function adminResetHwid() {
-  const uid = Number(document.getElementById('modalTargetUserId').value);
-  const target = appUsers.find(u => u.uid === uid);
-  if (target) {
-    target.hwid = null;
-    target.lastHwidReset = null;
-    saveUsersToStorage();
-    renderAdminTable();
-    showToast(`HWID пользователя #${target.uid} сброшен`, 'success');
-  }
 }
 
 function saveAdminUserData() {
