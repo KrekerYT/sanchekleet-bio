@@ -20,36 +20,98 @@ let selectedProductTiers = {}; // { productId: tierKey }
 let countdownInterval = null;
 let activeAdminSubtab = 'users';
 
-// Initialize System
-document.addEventListener('DOMContentLoaded', () => {
+// Default Built-in Products (Bulletproof fallback)
+const FALLBACK_PRODUCTS = [
+  {
+    id: "nekronium-sif",
+    name: "Nekronium SIF",
+    game: "Sky In Flames",
+    status: "Undetected",
+    features: [
+      "Aimbot & Smooth Targeting (Legit / Rage)",
+      "Visuals: Box ESP, Skeleton, Health, Chams",
+      "Triggerbot & Recoil Control System (RCS)",
+      "Обход сигнатурных проверок и античитов"
+    ],
+    tiers: [
+      { key: "7", label: "7 дней", price: 399, days: 7 },
+      { key: "30", label: "30 дней", price: 890, days: 30 },
+      { key: "lifetime", label: "Навсегда (Lifetime)", price: 1490, days: 36500 }
+    ]
+  },
+  {
+    id: "spoofer-hwid",
+    name: "👻 SPOOFER",
+    game: "HWID UNBAN & PROTECTION",
+    status: "Undetected",
+    features: [
+      "Полный обход блокировок по железу (HWID)",
+      "Смена серийных номеров SSD / HDD, BIOS, Motherboard, MAC",
+      "Совместим с Vanguard, EAC, BattlEye, FaceIT",
+      "Работает без переустановки Windows"
+    ],
+    tiers: [
+      { key: "lifetime", label: "Навсегда (Lifetime)", price: 499, days: 36500 }
+    ]
+  },
+  {
+    id: "guide-bypass",
+    name: "👻 ГАЙД НА ОБХОД БАНА (БЕЗ ПОКУПКИ ИГРЫ)",
+    game: "EXCLUSIVE MANUAL",
+    status: "Working",
+    features: [
+      "Пошаговая методика 100% снятия банов",
+      "Обход без необходимости повторно покупать игру",
+      "Очистка скрытых следов, реестра и сетевых адаптеров",
+      "Пожизненный доступ к гайду и обновлениям"
+    ],
+    tiers: [
+      { key: "lifetime", label: "Полный доступ (Навсегда)", price: 990, days: 36500 }
+    ]
+  }
+];
+
+// Initialize System (Runs immediately if DOM is already ready)
+function startApp() {
   initConfig();
   initStorage();
   renderProducts();
   checkSession();
   startGlobalTimer();
   syncWithServer();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}
 
 /* -------------------------------------------------------------
    Configuration Engine (Loads from config.js / localStorage)
 ------------------------------------------------------------- */
 function initConfig() {
+  const defaultCfg = (typeof NEKRONIUM_DEFAULT_CONFIG !== 'undefined' ? NEKRONIUM_DEFAULT_CONFIG : (typeof window !== 'undefined' && window.NEKRONIUM_DEFAULT_CONFIG)) || {
+    system: { brandName: 'NEKRONIUM', currency: '₽', loaderName: 'NekroniumLoader.exe' },
+    products: FALLBACK_PRODUCTS
+  };
+
   const storedConfig = localStorage.getItem(STORAGE_KEYS.CONFIG);
   if (storedConfig) {
     try {
       appConfig = JSON.parse(storedConfig);
+      if (!appConfig.products || appConfig.products.length === 0) {
+        appConfig.products = FALLBACK_PRODUCTS;
+      }
     } catch (e) {
       console.error('Failed to parse stored config, fallback to default', e);
-      appConfig = JSON.parse(JSON.stringify(NEKRONIUM_DEFAULT_CONFIG));
+      appConfig = JSON.parse(JSON.stringify(defaultCfg));
     }
-  } else if (typeof NEKRONIUM_DEFAULT_CONFIG !== 'undefined') {
-    appConfig = JSON.parse(JSON.stringify(NEKRONIUM_DEFAULT_CONFIG));
   } else {
-    // Fallback if config.js failed to load
-    appConfig = {
-      system: { brandName: 'NEKRONIUM', currency: '₽', loaderName: 'NekroniumLoader.exe' },
-      products: []
-    };
+    appConfig = JSON.parse(JSON.stringify(defaultCfg));
+    if (!appConfig.products || appConfig.products.length === 0) {
+      appConfig.products = FALLBACK_PRODUCTS;
+    }
   }
 }
 
