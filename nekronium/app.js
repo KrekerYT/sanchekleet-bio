@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
   USERS: 'nekronium_users_db',
   CURRENT_USER: 'nekronium_session_user',
   NEXT_UID: 'nekronium_next_uid',
-  CONFIG: 'nekronium_config_db'
+  CONFIG: 'nekronium_config_v2'
 };
 
 // Global State
@@ -121,6 +121,7 @@ function saveConfigToStorage() {
 function initStorage() {
   // Clear any legacy test data from older versions
   const legacyKeys = [
+    'nekronium_config_db',
     'nexus_users_db', 'nexus_v2_users_db', 'nexus_v3_users_db',
     'nexus_session_user', 'nexus_v2_session_user', 'nexus_v3_session_user',
     'nexus_next_uid', 'nexus_v2_next_uid', 'nexus_v3_next_uid'
