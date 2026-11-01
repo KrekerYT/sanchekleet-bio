@@ -82,10 +82,6 @@
                 <span class="badge badge-uid" id="profileUid">UID: #1001</span>
                 <span class="badge badge-role" id="profileRole">USER</span>
               </div>
-              <div class="hwid-status">
-                <span class="status-indicator-dot"></span>
-                <span id="profileHwid">HWID: Не привязан (привязка при 1-м запуске лоадера)</span>
-              </div>
             </div>
           </div>
 
@@ -130,12 +126,9 @@
               <button id="freezeToggleBtn" class="btn btn-warning" onclick="toggleSubscriptionFreeze()" disabled>
                 ❄️ Заморозить подписку
               </button>
-              <button class="btn btn-secondary btn-outline" onclick="resetUserHwid()">
-                🔄 Сбросить HWID
-              </button>
             </div>
             <div class="freeze-notice">
-              💡 Заморозка останавливает таймер подписки. Вы сможете разморозить её в любой момент.
+              💡 Заморозка останавливает таймер подписки (КД между заморозками: 10 дней). Вы сможете разморозить её в любой момент.
             </div>
           </div>
 
@@ -153,7 +146,6 @@
               <button class="btn btn-primary btn-lg btn-glow" id="downloadLoaderBtn" onclick="downloadLoader()">
                 📥 Скачать NekroniumLoader.exe
               </button>
-              <span class="download-subtext">Пароль к архиву: <code>nekronium</code> • SHA-256 Verified</span>
             </div>
           </div>
         </div>
@@ -204,7 +196,6 @@
                     <th>Подписка</th>
                     <th>Остаток</th>
                     <th>Статус</th>
-                    <th>HWID</th>
                     <th>Действия</th>
                   </tr>
                 </thead>
@@ -341,11 +332,6 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Управление HWID</label>
-        <button type="button" class="btn btn-secondary btn-block" onclick="adminResetHwid()">Сбросить HWID пользователя</button>
-      </div>
-
       <div class="modal-actions-row">
         <button type="button" class="btn btn-primary" onclick="saveAdminUserData()">Сохранить изменения</button>
       </div>
@@ -355,7 +341,7 @@
   <!-- Notification Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="config.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="config.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
