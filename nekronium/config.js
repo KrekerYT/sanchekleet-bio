@@ -18,14 +18,15 @@ const NEKRONIUM_DEFAULT_CONFIG = {
       name: "Nekronium SIF",
       game: "Sky In Flames",
       status: "Undetected",
+      lastUpdated: "Сегодня",
       features: [
         "Visuals: Box ESP, Icon ESP, WallHack",
         "Обход сигнатурных проверок и античитов"
       ],
       tiers: [
-        { key: "7", label: "7 дней", price: 399, days: 7 },
-        { key: "30", label: "30 дней", price: 890, days: 30 },
-        { key: "lifetime", label: "Навсегда (Lifetime)", price: 1490, days: 36500 }
+        { key: "7", label: "7 дней", price: 399, oldPrice: 499, hasDiscount: false, days: 7 },
+        { key: "30", label: "30 дней", price: 890, oldPrice: 1190, hasDiscount: false, days: 30 },
+        { key: "lifetime", label: "Навсегда (Lifetime)", price: 1490, oldPrice: 1990, hasDiscount: true, days: 36500 }
       ]
     },
     {
@@ -33,13 +34,14 @@ const NEKRONIUM_DEFAULT_CONFIG = {
       name: "👻 SPOOFER",
       game: "HWID UNBAN & PROTECTION",
       status: "Undetected",
+      lastUpdated: "03.11.2026",
       features: [
         "Полный обход блокировок по железу (HWID)",
         "Смена серийных номеров SSD / HDD, BIOS, Motherboard, MAC",
         "Работает без переустановки Windows"
       ],
       tiers: [
-        { key: "lifetime", label: "Навсегда (Lifetime)", price: 499, days: 36500 }
+        { key: "lifetime", label: "Навсегда (Lifetime)", price: 499, oldPrice: 799, hasDiscount: false, days: 36500 }
       ]
     },
     {
@@ -47,13 +49,14 @@ const NEKRONIUM_DEFAULT_CONFIG = {
       name: "ГАЙД НА ОБХОД БАНА (БЕЗ ПОКУПКИ ИГРЫ)",
       game: "EXCLUSIVE MANUAL",
       status: "Working",
+      lastUpdated: "01.11.2026",
       features: [
         "Пошаговая методика 100% снятия банов",
         "Обход без необходимости повторно покупать игру",
         "Пожизненный доступ к гайду и обновлениям"
       ],
       tiers: [
-        { key: "lifetime", label: "Полный доступ (Навсегда)", price: 990, days: 36500 }
+        { key: "lifetime", label: "Полный доступ (Навсегда)", price: 990, oldPrice: 1490, hasDiscount: false, days: 36500 }
       ]
     }
   ]
