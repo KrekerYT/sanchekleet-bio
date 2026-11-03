@@ -484,6 +484,12 @@ body {
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.4);
 }
+.badge-role.customer, .badge-role.buyer {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
 
 /* Dashboard Layout */
 .dashboard-layout {
