@@ -30,14 +30,15 @@ const FALLBACK_PRODUCTS = [
     name: "Nekronium SIF",
     game: "Sky In Flames",
     status: "Undetected",
+    lastUpdated: "Сегодня",
     features: [
       "Visuals: Box ESP, Icon ESP, WallHack",
       "Обход сигнатурных проверок и античитов"
     ],
     tiers: [
-      { key: "7", label: "7 дней", price: 399, days: 7 },
-      { key: "30", label: "30 дней", price: 890, days: 30 },
-      { key: "lifetime", label: "Навсегда (Lifetime)", price: 1490, days: 36500 }
+      { key: "7", label: "7 дней", price: 399, oldPrice: 499, hasDiscount: false, days: 7 },
+      { key: "30", label: "30 дней", price: 890, oldPrice: 1190, hasDiscount: false, days: 30 },
+      { key: "lifetime", label: "Навсегда (Lifetime)", price: 1490, oldPrice: 1990, hasDiscount: true, days: 36500 }
     ]
   },
   {
@@ -45,13 +46,14 @@ const FALLBACK_PRODUCTS = [
     name: "👻 SPOOFER",
     game: "HWID UNBAN & PROTECTION",
     status: "Undetected",
+    lastUpdated: "03.11.2026",
     features: [
       "Полный обход блокировок по железу (HWID)",
       "Смена серийных номеров SSD / HDD, BIOS, Motherboard, MAC",
       "Работает без переустановки Windows"
     ],
     tiers: [
-      { key: "lifetime", label: "Навсегда (Lifetime)", price: 499, days: 36500 }
+      { key: "lifetime", label: "Навсегда (Lifetime)", price: 499, oldPrice: 799, hasDiscount: false, days: 36500 }
     ]
   },
   {
@@ -59,13 +61,14 @@ const FALLBACK_PRODUCTS = [
     name: "ГАЙД НА ОБХОД БАНА (БЕЗ ПОКУПКИ ИГРЫ)",
     game: "EXCLUSIVE MANUAL",
     status: "Working",
+    lastUpdated: "01.11.2026",
     features: [
       "Пошаговая методика 100% снятия банов",
       "Обход без необходимости повторно покупать игру",
       "Пожизненный доступ к гайду и обновлениям"
     ],
     tiers: [
-      { key: "lifetime", label: "Полный доступ (Навсегда)", price: 990, days: 36500 }
+      { key: "lifetime", label: "Полный доступ (Навсегда)", price: 990, oldPrice: 1490, hasDiscount: false, days: 36500 }
     ]
   }
 ];
@@ -116,6 +119,13 @@ function initConfig() {
 
 function saveConfigToStorage() {
   localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(appConfig));
+  if (currentUser && currentUser.role === 'admin') {
+    fetch(`${API_BASE}/api/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: appConfig })
+    }).catch(() => {});
+  }
 }
 
 /* -------------------------------------------------------------
@@ -191,6 +201,22 @@ async function syncWithServer() {
       }
     }
   } catch (err) {}
+
+  // Sync global store config (prices, statuses, discounts) from server
+  try {
+    const cfgRes = await fetch(`${API_BASE}/api/config`);
+    if (cfgRes.ok) {
+      const cfgData = await cfgRes.json();
+      if (cfgData.success && cfgData.config && cfgData.config.products) {
+        appConfig = cfgData.config;
+        localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(appConfig));
+        renderProducts();
+        if (document.getElementById('tab-admin')?.classList.contains('active')) {
+          renderConfigEditor();
+        }
+      }
+    }
+  } catch (e) {}
 }
 
 function checkSession() {
@@ -279,16 +305,49 @@ function renderProducts() {
 
     const pricingButtons = prod.tiers.map(tier => {
       const isSelected = tier.key === currentSelectedTierKey;
+      let priceDisplay = `<span class="tier-price">${tier.price} ₽</span>`;
+      if (tier.hasDiscount && tier.oldPrice && tier.oldPrice > tier.price) {
+        priceDisplay = `
+          <span class="tier-price">
+            <span class="tier-old-price">${tier.oldPrice} ₽</span>
+            <span style="color: var(--accent-emerald);">${tier.price} ₽</span>
+          </span>
+        `;
+      }
       return `
         <button type="button" class="tier-btn ${isSelected ? 'selected' : ''}" 
                 onclick="selectTier('${prod.id}', '${tier.key}')">
           ${tier.label}
-          <span class="tier-price">${tier.price} ₽</span>
+          ${priceDisplay}
         </button>
       `;
     }).join('');
 
     const gridClass = prod.tiers.length === 1 ? 'pricing-options single-tier' : 'pricing-options';
+
+    let statusBadgeClass = 'badge-success';
+    let statusIcon = '<span class="pulse-indicator"></span>';
+    if (prod.status === 'Updating') {
+      statusBadgeClass = 'badge-warning';
+      statusIcon = '🔄';
+    } else if (prod.status === 'Detected') {
+      statusBadgeClass = 'badge-inactive';
+      statusIcon = '⚠️';
+    } else if (prod.status === 'Testing') {
+      statusBadgeClass = 'badge-uid';
+      statusIcon = '🧪';
+    }
+
+    let discountBadgeHtml = '';
+    if (currentTier && currentTier.hasDiscount && currentTier.oldPrice && currentTier.oldPrice > currentTier.price) {
+      const pct = Math.round((1 - currentTier.price / currentTier.oldPrice) * 100);
+      discountBadgeHtml = `<span class="badge badge-sale">🔥 СКИДКА -${pct}%</span>`;
+    }
+
+    let buyBtnPrice = `${currentTier ? currentTier.price : 0} ₽`;
+    if (currentTier && currentTier.hasDiscount && currentTier.oldPrice && currentTier.oldPrice > currentTier.price) {
+      buyBtnPrice = `${currentTier.price} ₽ <span class="tier-old-price" style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-left: 6px;">${currentTier.oldPrice} ₽</span>`;
+    }
 
     return `
       <div class="product-card" id="card-${prod.id}">
@@ -297,8 +356,12 @@ function renderProducts() {
             <div>
               <span class="product-game-tag">${prod.game}</span>
               <h3 class="product-name">${prod.name}</h3>
+              <div class="product-update-tag">🕒 Обновлен: <strong>${prod.lastUpdated || 'Сегодня'}</strong></div>
             </div>
-            <span class="badge badge-success"><span class="pulse-indicator"></span> ${prod.status}</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+              <span class="badge ${statusBadgeClass}">${statusIcon} ${prod.status}</span>
+              ${discountBadgeHtml}
+            </div>
           </div>
 
           <ul class="features-list">
@@ -311,8 +374,8 @@ function renderProducts() {
             ${pricingButtons}
           </div>
 
-          <button class="btn btn-primary btn-block" onclick="purchaseProduct('${prod.id}')">
-            Купить (${currentTier ? currentTier.price : 0} ₽)
+          <button class="btn btn-primary btn-block btn-glow" onclick="purchaseProduct('${prod.id}')">
+            Купить (${buyBtnPrice})
           </button>
         </div>
       </div>
@@ -1115,29 +1178,57 @@ function saveAdminUserData() {
 /* -------------------------------------------------------------
    ADMIN: PRODUCTS & PRICES CONFIG EDITOR
 ------------------------------------------------------------- */
+function toggleDiscountInput(prodIdx, tierIdx) {
+  const cb = document.getElementById(`cfg_discount_${prodIdx}_${tierIdx}`);
+  const oldPriceBox = document.getElementById(`cfg_oldprice_wrap_${prodIdx}_${tierIdx}`);
+  if (cb && oldPriceBox) {
+    oldPriceBox.style.display = cb.checked ? 'flex' : 'none';
+  }
+}
+
 function renderConfigEditor() {
   const container = document.getElementById('configProductsList');
   if (!container || !appConfig || !appConfig.products) return;
 
   container.innerHTML = appConfig.products.map((prod, prodIdx) => {
-    const tiersHtml = prod.tiers.map((tier, tierIdx) => `
-      <div class="tier-edit-box">
-        <label>${tier.label} (${tier.key}):</label>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <input type="number" min="0" id="cfg_price_${prodIdx}_${tierIdx}" value="${tier.price}">
-          <span style="font-weight: 700; color: var(--accent-emerald);">₽</span>
+    const tiersHtml = prod.tiers.map((tier, tierIdx) => {
+      const hasDiscount = Boolean(tier.hasDiscount);
+      const oldPrice = tier.oldPrice || '';
+
+      return `
+        <div class="tier-edit-box">
+          <label style="font-weight: 700; color: #fff;">${tier.label} (${tier.key}):</label>
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <input type="number" min="0" id="cfg_price_${prodIdx}_${tierIdx}" value="${tier.price}" placeholder="Цена" style="width: 100%;">
+            <span style="font-weight: 700; color: var(--accent-emerald);">₽</span>
+          </div>
+
+          <div class="discount-box">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #fb7185; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="cfg_discount_${prodIdx}_${tierIdx}" ${hasDiscount ? 'checked' : ''} onchange="toggleDiscountInput(${prodIdx}, ${tierIdx})">
+              🔥 Включить скидку
+            </label>
+            <div id="cfg_oldprice_wrap_${prodIdx}_${tierIdx}" style="display: ${hasDiscount ? 'flex' : 'none'}; align-items: center; gap: 6px;">
+              <span style="font-size: 0.74rem; color: var(--text-muted);">Старая цена:</span>
+              <input type="number" min="0" id="cfg_oldprice_${prodIdx}_${tierIdx}" value="${oldPrice}" placeholder="1990" style="width: 90px; padding: 4px 6px; font-size: 0.8rem;">
+              <span style="font-size: 0.78rem; color: var(--text-muted);">₽</span>
+            </div>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     return `
       <div class="config-prod-card">
         <div class="config-prod-header">
-          <h4>${prod.name} <code>(${prod.id})</code></h4>
+          <div>
+            <h4>${prod.name} <code>(${prod.id})</code></h4>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Игра: ${prod.game}</div>
+          </div>
           <span class="badge badge-success">${prod.status}</span>
         </div>
 
-        <div class="config-inputs-row">
+        <div class="config-inputs-row" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
           <div>
             <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Название товара:</label>
             <input type="text" id="cfg_name_${prodIdx}" value="${prod.name}">
@@ -1147,17 +1238,22 @@ function renderConfigEditor() {
             <input type="text" id="cfg_game_${prodIdx}" value="${prod.game}">
           </div>
           <div>
-            <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Статус защиты:</label>
+            <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Статус чита:</label>
             <select id="cfg_status_${prodIdx}">
-              <option value="Undetected" ${prod.status === 'Undetected' ? 'selected' : ''}>Undetected</option>
-              <option value="Testing" ${prod.status === 'Testing' ? 'selected' : ''}>Testing</option>
-              <option value="Updating" ${prod.status === 'Updating' ? 'selected' : ''}>Updating</option>
-              <option value="Working" ${prod.status === 'Working' ? 'selected' : ''}>Working</option>
+              <option value="Undetected" ${prod.status === 'Undetected' ? 'selected' : ''}>🟢 Undetected (Безопасен)</option>
+              <option value="Updating" ${prod.status === 'Updating' ? 'selected' : ''}>🔄 Updating (На обновлении)</option>
+              <option value="Testing" ${prod.status === 'Testing' ? 'selected' : ''}>🧪 Testing (На тестах)</option>
+              <option value="Detected" ${prod.status === 'Detected' ? 'selected' : ''}>⚠️ Detected (Обнаружен!)</option>
+              <option value="Working" ${prod.status === 'Working' ? 'selected' : ''}>✨ Working (Работает)</option>
             </select>
+          </div>
+          <div>
+            <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Дата / Текст обновления:</label>
+            <input type="text" id="cfg_updated_${prodIdx}" value="${prod.lastUpdated || 'Сегодня'}" placeholder="Например: Сегодня или 03.11.2026">
           </div>
         </div>
 
-        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); display: block;">Настройка цен тарифов:</label>
+        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-top: 14px;">Настройка цен тарифов и скидок:</label>
         <div class="config-tiers-grid">
           ${tiersHtml}
         </div>
@@ -1173,17 +1269,31 @@ function saveAdminPriceConfig() {
     const nameInput = document.getElementById(`cfg_name_${prodIdx}`);
     const gameInput = document.getElementById(`cfg_game_${prodIdx}`);
     const statusSelect = document.getElementById(`cfg_status_${prodIdx}`);
+    const updatedInput = document.getElementById(`cfg_updated_${prodIdx}`);
 
     if (nameInput) prod.name = nameInput.value.trim();
     if (gameInput) prod.game = gameInput.value.trim();
     if (statusSelect) prod.status = statusSelect.value;
+    if (updatedInput) prod.lastUpdated = updatedInput.value.trim() || 'Сегодня';
 
     prod.tiers.forEach((tier, tierIdx) => {
       const priceInput = document.getElementById(`cfg_price_${prodIdx}_${tierIdx}`);
+      const discountCb = document.getElementById(`cfg_discount_${prodIdx}_${tierIdx}`);
+      const oldPriceInput = document.getElementById(`cfg_oldprice_${prodIdx}_${tierIdx}`);
+
       if (priceInput) {
         const val = parseFloat(priceInput.value);
         if (!isNaN(val) && val >= 0) {
           tier.price = val;
+        }
+      }
+
+      if (discountCb) {
+        tier.hasDiscount = discountCb.checked;
+        if (tier.hasDiscount && oldPriceInput) {
+          tier.oldPrice = parseFloat(oldPriceInput.value) || Math.round(tier.price * 1.35);
+        } else {
+          tier.oldPrice = 0;
         }
       }
     });
@@ -1192,7 +1302,7 @@ function saveAdminPriceConfig() {
   saveConfigToStorage();
   renderProducts(); // Refresh storefront catalog in real-time
   renderConfigEditor(); // Refresh editor
-  showToast('Прайсы и товары успешно сохранены и обновлены в магазине!', 'success');
+  showToast('Прайсы, статусы и скидки успешно сохранены и обновлены!', 'success');
 }
 
 function resetConfigToDefault() {
