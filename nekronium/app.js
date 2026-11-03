@@ -74,14 +74,28 @@ const FALLBACK_PRODUCTS = [
 ];
 
 // Initialize System (Runs immediately if DOM is already ready)
-function startApp() {
+async function startApp() {
   initConfig();
   initStorage();
   renderProducts();
   checkSession();
   startGlobalTimer();
-  syncWithServer();
+  await syncWithServer();
   renderAnnouncementBanner();
+  checkReturnedPayment();
+}
+
+async function checkReturnedPayment() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const status = urlParams.get('status');
+  if (status === 'success') {
+    showToast('Проверка подтверждения оплаты Lava...', 'info');
+    await fetch(`${API_BASE}/api/lava/sync`).catch(() => {});
+    await syncWithServer();
+    showToast('🎉 Оплата успешно подтверждена и зачислена на баланс!', 'success');
+    window.history.replaceState({}, document.title, window.location.pathname);
+    switchTab('dashboard');
+  }
 }
 
 if (document.readyState === 'loading') {
@@ -978,25 +992,30 @@ async function processTopUp() {
     closeTopUpModal();
     showToast('Счёт создан! Перенаправление на оплату...', 'success');
 
-    // Open payment page in new tab
-    window.open(data.paymentUrl, '_blank');
+    // Сохраняем информацию для проверки по возвращении
+    sessionStorage.setItem('pending_lava_invoice', data.invoiceId || '');
+    sessionStorage.setItem('pending_lava_expected', String(expectedCredit));
 
-    // Live balance polling (checks every 4 seconds)
+    // Прямой редирект (НИКОГДА не блокируется браузерами на ПК и телефонах)
+    setTimeout(() => {
+      window.location.href = data.paymentUrl;
+    }, 400);
+
+    // Live balance polling (checks every 3 seconds)
     const initialBal = currentUser.balance;
-    const bonusBonus = appliedTopUpPromo ? Math.round(amount * (appliedTopUpPromo.bonusPercent / 100)) : 0;
-    const expectedCredit = amount + bonusBonus;
     let pollAttempts = 0;
     const pollInterval = setInterval(async () => {
       pollAttempts++;
+      await fetch(`${API_BASE}/api/lava/sync`).catch(() => {});
       await syncWithServer();
       if (currentUser && currentUser.balance > initialBal) {
         clearInterval(pollInterval);
         showToast(`🎉 Оплата прошла! На ваш баланс зачислено +${expectedCredit} ₽`, 'success');
       }
-      if (pollAttempts >= 75) {
-        clearInterval(pollInterval); // Stop polling after 5 minutes
+      if (pollAttempts >= 80) {
+        clearInterval(pollInterval);
       }
-    }, 4000);
+    }, 3000);
 
   } catch (err) {
     showToast('Ошибка подключения к платёжному серверу', 'error');
