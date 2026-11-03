@@ -7,12 +7,23 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
   <!-- Ambient background glow effects -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Announcement Top Banner (Controlled from Admin Panel) -->
+  <div id="announcementBanner" class="announcement-banner" style="display: none;">
+    <div class="container announcement-content">
+      <div class="announcement-body">
+        <span class="announcement-icon">📢</span>
+        <span id="announcementText" class="announcement-text">Внимание: технические работы завершены. Все читы обновлены до актуальной версии!</span>
+      </div>
+      <button class="announcement-close" onclick="closeAnnouncementBanner()" title="Закрыть оповещение">✕</button>
+    </div>
+  </div>
 
   <!-- Header / Navigation -->
   <header class="navbar">
@@ -149,6 +160,22 @@
             </div>
           </div>
         </div>
+
+        <!-- License Key Activation Box -->
+        <div class="glass-card key-activation-card" style="margin-top: 24px;">
+          <div class="card-title-row">
+            <h3>🔑 Активация лицензионного ключа</h3>
+            <span class="badge badge-primary">Plati / FunPay / Keys</span>
+          </div>
+          <p class="sub-heading" style="margin-bottom: 16px;">
+            Приобрели ключ подписки у реселлера или получили промо-ключ? Активируйте его ниже для моментального доступа к софту:
+          </p>
+          <div class="key-activation-row">
+            <input type="text" id="licenseKeyInput" placeholder="NEKRON-30D-XXXX-XXXX-XXXX" class="key-input" autocomplete="off" spellcheck="false">
+            <button class="btn btn-primary btn-glow" id="activateKeyBtn" onclick="activateLicenseKey()">⚡ Активировать</button>
+          </div>
+          <div id="keyActivationResult" class="key-result-msg" style="display: none;"></div>
+        </div>
       </div>
     </section>
 
@@ -170,10 +197,19 @@
         <!-- Admin Subtabs Navigation -->
         <div class="admin-tabs-nav">
           <button class="btn btn-secondary btn-sm active" id="adminSubtabBtnUsers" onclick="switchAdminSubtab('users')">
-            👥 Управление пользователями
+            👥 Пользователи
           </button>
           <button class="btn btn-secondary btn-sm" id="adminSubtabBtnPrices" onclick="switchAdminSubtab('prices')">
-            ⚙️ Прайсы & Товары (Конфиг)
+            ⚙️ Прайсы & Товары
+          </button>
+          <button class="btn btn-secondary btn-sm" id="adminSubtabBtnPromos" onclick="switchAdminSubtab('promos')">
+            🎟️ Промокоды (% бонус)
+          </button>
+          <button class="btn btn-secondary btn-sm" id="adminSubtabBtnKeys" onclick="switchAdminSubtab('keys')">
+            🔑 Генератор ключей
+          </button>
+          <button class="btn btn-secondary btn-sm" id="adminSubtabBtnBanner" onclick="switchAdminSubtab('banner')">
+            📢 Верхний баннер
           </button>
         </div>
 
@@ -181,7 +217,7 @@
         <div id="adminPaneUsers" class="admin-subpane active">
           <div class="glass-card table-card">
             <div class="table-toolbar">
-              <input type="text" id="adminUserSearch" placeholder="Поиск по UID или логину..." oninput="filterAdminUsers()">
+              <input type="text" id="adminUserSearch" placeholder="Поиск по UID, логину или IP..." oninput="filterAdminUsers()">
               <button class="btn btn-secondary btn-sm" onclick="renderAdminTable()">🔄 Обновить список</button>
             </div>
 
@@ -191,6 +227,7 @@
                   <tr>
                     <th>UID</th>
                     <th>Логин</th>
+                    <th>IP</th>
                     <th>Роль</th>
                     <th>Баланс</th>
                     <th>Подписка</th>
@@ -232,6 +269,144 @@
                 <button class="btn btn-secondary btn-sm" onclick="importConfigJsonPrompt()">📥 Импорт JSON</button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 3: PROMOCODES -->
+        <div id="adminPanePromos" class="admin-subpane" style="display: none;">
+          <div class="glass-card" style="margin-bottom: 20px;">
+            <div class="card-title-row">
+              <h3>🎟️ Создать промокод на пополнение баланса</h3>
+              <span class="badge badge-primary">Бонус к депозиту</span>
+            </div>
+            <p class="sub-heading" style="margin-bottom: 16px;">
+              Пользователь вводит промокод в окне пополнения и получает указанный % сверху к сумме.
+            </p>
+            <div class="generator-grid">
+              <div class="form-group">
+                <label>Код промокода</label>
+                <div class="input-inline">
+                  <input type="text" id="adminPromoCodeInput" placeholder="SANCHEK25" style="text-transform: uppercase;">
+                  <button class="btn btn-secondary btn-sm" type="button" onclick="adminGenRandomPromo()">🎲 Случ.</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Бонус к сумме (%)</label>
+                <input type="number" id="adminPromoBonusInput" value="20" min="1" max="500" placeholder="20">
+              </div>
+              <div class="form-group">
+                <label>Кол-во активаций</label>
+                <input type="number" id="adminPromoUsesInput" value="100" min="1" max="999999">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="adminCreatePromo()">➕ Создать промокод</button>
+          </div>
+
+          <div class="glass-card table-card">
+            <div class="card-title-row" style="padding: 18px 24px 0 24px;">
+              <h3>Список активных промокодов</h3>
+              <button class="btn btn-secondary btn-sm" onclick="loadAdminPromos()">🔄 Обновить</button>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Промокод</th>
+                    <th>Бонус</th>
+                    <th>Осталось активаций</th>
+                    <th>Дата создания</th>
+                    <th>Действие</th>
+                  </tr>
+                </thead>
+                <tbody id="adminPromosTableBody">
+                  <!-- Dynamically rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 4: LICENSE KEYS GENERATOR -->
+        <div id="adminPaneKeys" class="admin-subpane" style="display: none;">
+          <div class="glass-card" style="margin-bottom: 20px;">
+            <div class="card-title-row">
+              <h3>🔑 Генератор лицензионных ключей</h3>
+              <span class="badge badge-success">Для FunPay / Plati / Telegram</span>
+            </div>
+            <p class="sub-heading" style="margin-bottom: 16px;">
+              Сгенерированные ключи можно выдавать клиентам или продавать на торговых площадках. Клиенты активируют их в личном кабинете.
+            </p>
+            <div class="generator-grid">
+              <div class="form-group">
+                <label>Выберите продукт</label>
+                <select id="adminKeyProductSelect">
+                  <!-- Filled dynamically from appConfig.products -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Длительность подписки</label>
+                <select id="adminKeyDurationSelect">
+                  <option value="7">7 дней</option>
+                  <option value="30" selected>30 дней (1 месяц)</option>
+                  <option value="lifetime">Навсегда (Lifetime)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Количество ключей</label>
+                <input type="number" id="adminKeyCountInput" value="5" min="1" max="50">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-glow" onclick="adminGenerateKeys()">⚡ Сгенерировать ключи</button>
+          </div>
+
+          <div class="glass-card table-card">
+            <div class="card-title-row" style="padding: 18px 24px 0 24px;">
+              <h3>База сгенерированных ключей</h3>
+              <button class="btn btn-secondary btn-sm" onclick="loadAdminKeys()">🔄 Обновить список</button>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Лицензионный ключ (кликните для копирования)</th>
+                    <th>Товар</th>
+                    <th>Тариф</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                  </tr>
+                </thead>
+                <tbody id="adminKeysTableBody">
+                  <!-- Dynamically rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 5: ANNOUNCEMENT BANNER -->
+        <div id="adminPaneBanner" class="admin-subpane" style="display: none;">
+          <div class="glass-card">
+            <div class="card-title-row">
+              <h3>📢 Управление верхним баннером сайта</h3>
+              <span class="badge badge-primary">Глобальное оповещение</span>
+            </div>
+            <p class="sub-heading" style="margin-bottom: 20px;">
+              Этот баннер увидят все посетители в самом верху сайта. Подходит для уведомлений об обновлениях, акциях или техработах.
+            </p>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+              <input type="checkbox" id="adminBannerEnabled" style="width: 20px; height: 20px; cursor: pointer;">
+              <label for="adminBannerEnabled" style="font-weight: 700; color: #fff; cursor: pointer;">
+                Включить отображение баннера на сайте
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="adminBannerText">Текст сообщения в баннере</label>
+              <textarea id="adminBannerText" rows="3" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; color: #fff; font-family: inherit; font-size: 0.95rem;" placeholder="Например: ⚡ Все читы успешно обновлены под последний патч игры!"></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveAdminBannerConfig()">💾 Сохранить и применить баннер</button>
           </div>
         </div>
 
@@ -304,6 +479,16 @@
         </div>
       </div>
 
+      <!-- Promo code input for bonus deposit -->
+      <div class="promo-group">
+        <label for="topUpPromoInput" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px;">🎟️ Промокод на бонус к сумме (опционально)</label>
+        <div class="input-inline">
+          <input type="text" id="topUpPromoInput" placeholder="Например: SANCHEK" style="text-transform: uppercase;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="checkTopUpPromo()">Применить</button>
+        </div>
+        <div id="topUpPromoStatus" class="promo-status-text" style="display: none;"></div>
+      </div>
+
       <button class="btn btn-primary btn-block btn-glow" id="topUpSubmitBtn" onclick="processTopUp()">Перейти к оплате</button>
     </div>
   </div>
@@ -354,7 +539,7 @@
   <!-- Notification Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="config.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="config.js?v=13"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
