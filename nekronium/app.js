@@ -750,9 +750,75 @@ function setTopUpAmount(amount) {
   document.getElementById('topUpAmountInput').value = amount;
 }
 
-function processTopUp() {
-  showToast('Soon.', 'info');
-  closeTopUpModal();
+async function processTopUp() {
+  if (!currentUser) {
+    closeTopUpModal();
+    openAuthModal('login');
+    return;
+  }
+
+  const amountInput = document.getElementById('topUpAmountInput');
+  const amount = Number(amountInput.value);
+
+  if (isNaN(amount) || amount < 10) {
+    showToast('Минимальная сумма пополнения — 10 ₽', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('topUpSubmitBtn');
+  const originalText = submitBtn ? submitBtn.textContent : 'Перейти к оплате';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Генерация счёта...';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/lava/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: currentUser.uid,
+        username: currentUser.username,
+        amount: amount
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success || !data.paymentUrl) {
+      showToast(data.error || 'Ошибка при создании счета на оплату', 'error');
+      return;
+    }
+
+    closeTopUpModal();
+    showToast('Счёт создан! Перенаправление на оплату...', 'success');
+
+    // Open Lava payment page in new tab
+    window.open(data.paymentUrl, '_blank');
+
+    // Live balance polling (checks every 4 seconds)
+    const initialBal = currentUser.balance;
+    let pollAttempts = 0;
+    const pollInterval = setInterval(async () => {
+      pollAttempts++;
+      await syncWithServer();
+      if (currentUser && currentUser.balance > initialBal) {
+        clearInterval(pollInterval);
+        showToast(`🎉 Оплата прошла! На ваш баланс зачислено +${amount} ₽`, 'success');
+      }
+      if (pollAttempts >= 75) {
+        clearInterval(pollInterval); // Stop polling after 5 minutes
+      }
+    }, 4000);
+
+  } catch (err) {
+    showToast('Ошибка подключения к платёжному серверу', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  }
 }
 
 /* -------------------------------------------------------------
