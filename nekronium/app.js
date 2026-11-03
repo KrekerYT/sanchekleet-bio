@@ -849,6 +849,17 @@ function openTopUpModal() {
     promoStatus.style.display = 'none';
     promoStatus.textContent = '';
   }
+  const actionBox = document.getElementById('topUpActionContainer');
+  if (actionBox) {
+    actionBox.style.display = 'none';
+    actionBox.innerHTML = '';
+  }
+  const submitBtn = document.getElementById('topUpSubmitBtn');
+  if (submitBtn) {
+    submitBtn.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Перейти к оплате';
+  }
   document.getElementById('topUpModal').classList.add('open');
   updateTopUpHint();
 }
@@ -1005,22 +1016,46 @@ async function processTopUp() {
 
     if (!res || !res.ok || !data || !data.success || !data.paymentUrl) {
       showToast((data && data.error) ? data.error : 'Ошибка при создании счета на оплату', 'error');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
       return;
     }
 
-    closeTopUpModal();
-    showToast('Счёт создан! Перенаправление на оплату...', 'success');
-
     const creditAmount = (data && data.creditAmount) ? data.creditAmount : amount;
 
-    // Сохраняем информацию для проверки по возвращении
-    sessionStorage.setItem('pending_lava_invoice', data.invoiceId || '');
-    sessionStorage.setItem('pending_lava_expected', String(creditAmount));
+    try {
+      sessionStorage.setItem('pending_lava_invoice', data.invoiceId || '');
+      sessionStorage.setItem('pending_lava_expected', String(creditAmount));
+    } catch (e) {}
 
-    // Прямой редирект (НИКОГДА не блокируется браузерами на ПК и телефонах)
+    showToast('Счёт создан! Перенаправление на оплату...', 'success');
+
+    // Крупная кнопка для мобильных браузеров и Telegram (где авто-редиректы блокируются)
+    const actionBox = document.getElementById('topUpActionContainer');
+    if (actionBox) {
+      actionBox.style.display = 'block';
+      actionBox.innerHTML = `
+        <a href="${data.paymentUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block btn-glow" style="display:block; text-align:center; padding: 14px; text-decoration:none; font-size: 1.05rem; font-weight: 700; margin-bottom: 8px;">
+          💳 НАЖМИТЕ ЗДЕСЬ ДЛЯ ОПЛАТЫ ➔
+        </a>
+        <p style="font-size: 0.78rem; color: var(--text-muted); text-align: center; margin: 0;">Если страница не открылась автоматически — нажмите на кнопку выше</p>
+      `;
+    }
+
+    if (submitBtn) {
+      submitBtn.style.display = 'none';
+    }
+
+    // Direct immediate redirect attempt
     setTimeout(() => {
-      window.location.href = data.paymentUrl;
-    }, 300);
+      try {
+        window.location.assign(data.paymentUrl);
+      } catch (e) {
+        window.location.href = data.paymentUrl;
+      }
+    }, 400);
 
     // Live balance polling (checks every 3 seconds)
     const initialBal = currentUser.balance;
@@ -1031,6 +1066,7 @@ async function processTopUp() {
       await syncWithServer();
       if (currentUser && currentUser.balance > initialBal) {
         clearInterval(pollInterval);
+        closeTopUpModal();
         showToast(`🎉 Оплата прошла! На ваш баланс зачислено +${creditAmount} ₽`, 'success');
       }
       if (pollAttempts >= 80) {
@@ -1040,9 +1076,9 @@ async function processTopUp() {
 
   } catch (err) {
     console.error('Payment connect error:', err);
-    showToast('Сбой сети при подключении к платежному шлюзу. Попробуйте обновить страницу.', 'error');
+    showToast(`Ошибка: ${err.message || 'Сбой соединения с сервером'}`, 'error');
   } finally {
-    if (submitBtn) {
+    if (submitBtn && submitBtn.style.display !== 'none') {
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;
     }
