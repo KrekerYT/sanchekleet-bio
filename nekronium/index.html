@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <!-- Ambient background glow effects -->
@@ -283,11 +283,25 @@
 
       <div class="form-group">
         <label for="topUpAmountInput">Сумма пополнения (₽)</label>
-        <input type="number" id="topUpAmountInput" min="10" max="50000" value="890">
+        <input type="number" id="topUpAmountInput" min="10" max="50000" value="890" oninput="updateTopUpHint()">
       </div>
 
-      <div class="payment-methods">
-        <div class="method active">Lava.top: СБП, Карты (МИР, UAH, KZT, Мир), Крипта</div>
+      <div class="form-group">
+        <label>Способ оплаты</label>
+        <div class="payment-methods" id="topUpMethodsList">
+          <div class="method active" data-currency="RUB" onclick="selectTopUpMethod('RUB', this)">
+            🇷🇺 РФ: СБП, Карты МИР (Рубли)
+          </div>
+          <div class="method" data-currency="USD" onclick="selectTopUpMethod('USD', this)">
+            🇺🇦 🌍 Украина & Зарубеж (Monobank, Приват, Visa/MC)
+          </div>
+          <div class="method" data-currency="USD" onclick="selectTopUpMethod('USD', this)">
+            💎 Криптовалюта (USDT, TON, BTC)
+          </div>
+        </div>
+        <div id="topUpCurrencyHint" style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: -6px; margin-bottom: 14px; line-height: 1.4;">
+          💡 Счёт будет выставлен в рублях: 890 ₽ через СБП / Карты РФ
+        </div>
       </div>
 
       <button class="btn btn-primary btn-block btn-glow" id="topUpSubmitBtn" onclick="processTopUp()">Перейти к оплате</button>
@@ -340,7 +354,7 @@
   <!-- Notification Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="config.js?v=9"></script>
-  <script src="app.js?v=9"></script>
+  <script src="config.js?v=10"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
