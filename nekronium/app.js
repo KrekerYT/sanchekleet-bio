@@ -12,10 +12,7 @@ const STORAGE_KEYS = {
 };
 
 // Cloudflare Worker API URL (Connected to D1 Database)
-// Поддерживает как личный поддомен api.sanchek.de (без блокировок РКН), так и workers.dev
-const API_BASE = (window.location.hostname === 'sanchek.de' || window.location.hostname.endsWith('.sanchek.de'))
-  ? 'https://api.sanchek.de'
-  : 'https://nekronium-db.easyhubapi.workers.dev';
+const API_BASE = 'https://nekronium-db.easyhubapi.workers.dev';
 const API_FALLBACK = 'https://nekronium-db.easyhubapi.workers.dev';
 
 // Global State
@@ -1014,14 +1011,16 @@ async function processTopUp() {
     closeTopUpModal();
     showToast('Счёт создан! Перенаправление на оплату...', 'success');
 
+    const creditAmount = (data && data.creditAmount) ? data.creditAmount : amount;
+
     // Сохраняем информацию для проверки по возвращении
     sessionStorage.setItem('pending_lava_invoice', data.invoiceId || '');
-    sessionStorage.setItem('pending_lava_expected', String(expectedCredit));
+    sessionStorage.setItem('pending_lava_expected', String(creditAmount));
 
     // Прямой редирект (НИКОГДА не блокируется браузерами на ПК и телефонах)
     setTimeout(() => {
       window.location.href = data.paymentUrl;
-    }, 400);
+    }, 300);
 
     // Live balance polling (checks every 3 seconds)
     const initialBal = currentUser.balance;
@@ -1032,7 +1031,7 @@ async function processTopUp() {
       await syncWithServer();
       if (currentUser && currentUser.balance > initialBal) {
         clearInterval(pollInterval);
-        showToast(`🎉 Оплата прошла! На ваш баланс зачислено +${expectedCredit} ₽`, 'success');
+        showToast(`🎉 Оплата прошла! На ваш баланс зачислено +${creditAmount} ₽`, 'success');
       }
       if (pollAttempts >= 80) {
         clearInterval(pollInterval);
