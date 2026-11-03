@@ -81,6 +81,7 @@ function startApp() {
   checkSession();
   startGlobalTimer();
   syncWithServer();
+  renderAnnouncementBanner();
 }
 
 if (document.readyState === 'loading') {
@@ -435,6 +436,20 @@ function purchaseProduct(productId) {
   updateDashboardView();
   showToast(`Успешно приобретено: "${product.name}" (${tier.label})!`, 'success');
   switchTab('dashboard');
+
+  // Telegram alert for purchase
+  fetch(`${API_BASE}/api/purchase/notify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      uid: currentUser.uid,
+      username: currentUser.username,
+      productName: product.name,
+      tierLabel: tier.label,
+      price: cost,
+      balance: currentUser.balance.toFixed(2)
+    })
+  }).catch(() => {});
 }
 
 /* -------------------------------------------------------------
@@ -496,6 +511,11 @@ async function handleAuthSubmit(event) {
 
       if (!user) {
         setAuthNotice('Неверный логин или пароль', 'error');
+        return;
+      }
+
+      if (user.isBanned) {
+        setAuthNotice('❌ Ваш аккаунт заблокирован Администратором!', 'error');
         return;
       }
 
@@ -795,15 +815,24 @@ function downloadLoader() {
 }
 
 /* -------------------------------------------------------------
-   Balance Top-Up Modal (Shows "Soon.")
+   Balance Top-Up Modal (Lava & CryptoBot + Promo Bonus)
 ------------------------------------------------------------- */
 let selectedTopUpProvider = 'lava';
 let selectedTopUpCurrency = 'RUB';
+let appliedTopUpPromo = null;
 
 function openTopUpModal() {
   if (!currentUser) {
     openAuthModal('login');
     return;
+  }
+  appliedTopUpPromo = null;
+  const promoInput = document.getElementById('topUpPromoInput');
+  const promoStatus = document.getElementById('topUpPromoStatus');
+  if (promoInput) promoInput.value = '';
+  if (promoStatus) {
+    promoStatus.style.display = 'none';
+    promoStatus.textContent = '';
   }
   document.getElementById('topUpModal').classList.add('open');
   updateTopUpHint();
@@ -811,6 +840,7 @@ function openTopUpModal() {
 
 function closeTopUpModal() {
   document.getElementById('topUpModal').classList.remove('open');
+  appliedTopUpPromo = null;
 }
 
 function selectTopUpMethod(provider, currency, el) {
@@ -827,19 +857,79 @@ function updateTopUpHint() {
   const amount = Number(amountInput ? amountInput.value : 890) || 890;
   
   if (!hint) return;
+  let bonusText = '';
+  let finalCredit = amount;
+  if (appliedTopUpPromo && appliedTopUpPromo.bonusPercent) {
+    finalCredit = Math.round(amount * (1 + appliedTopUpPromo.bonusPercent / 100));
+    bonusText = ` <span style="color: var(--accent-emerald); font-weight: 700;">(+${appliedTopUpPromo.bonusPercent}% бонус = ${finalCredit} ₽)</span>`;
+  }
+
   if (selectedTopUpProvider === 'cryptobot') {
-    hint.innerHTML = `💡 Оплата криптовалютой через <strong>@CryptoBot</strong> (USDT, TON, BTC, SOL и др.). На баланс зачислится <strong>${amount} ₽</strong>.`;
+    hint.innerHTML = `💡 Оплата криптовалютой через <strong>@CryptoBot</strong> (USDT, TON, BTC, SOL и др.). На баланс зачислится <strong>${finalCredit} ₽</strong>${bonusText}.`;
   } else if (selectedTopUpCurrency === 'USD') {
     const usd = Math.max(1.20, Math.round((amount / 92) * 100) / 100);
-    hint.innerHTML = `💡 К оплате: <strong>~${usd} $</strong> (с карты спишется в гривнах / валюте карты без блокировок НБУ). На баланс зачислится <strong>${amount} ₽</strong>.`;
+    hint.innerHTML = `💡 К оплате: <strong>~${usd} $</strong> (с карты спишется в гривнах / валюте карты без блокировок НБУ). На баланс зачислится <strong>${finalCredit} ₽</strong>${bonusText}.`;
   } else {
-    hint.innerHTML = `💡 Счёт будет выставлен в рублях: <strong>${amount} ₽</strong> через СБП / Карты РФ.`;
+    hint.innerHTML = `💡 Счёт будет выставлен в рублях: <strong>${amount} ₽</strong> через СБП / Карты РФ. На баланс зачислится <strong>${finalCredit} ₽</strong>${bonusText}.`;
   }
 }
 
 function setTopUpAmount(amount) {
   document.getElementById('topUpAmountInput').value = amount;
   updateTopUpHint();
+}
+
+async function checkTopUpPromo() {
+  const promoInput = document.getElementById('topUpPromoInput');
+  const promoStatus = document.getElementById('topUpPromoStatus');
+  const code = (promoInput ? promoInput.value : '').trim().toUpperCase();
+
+  if (!code) {
+    if (promoStatus) {
+      promoStatus.textContent = 'Введите промокод';
+      promoStatus.className = 'promo-status-text error';
+      promoStatus.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/promo/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      appliedTopUpPromo = data;
+      const amount = Number(document.getElementById('topUpAmountInput')?.value || 890) || 890;
+      const bonusAmount = Math.round(amount * (data.bonusPercent / 100));
+      const totalCredited = amount + bonusAmount;
+      if (promoStatus) {
+        promoStatus.textContent = `✓ Промокод ${data.code} активен: +${data.bonusPercent}% бонуса к пополнению! На баланс поступит ${totalCredited} ₽ (вместо ${amount} ₽)`;
+        promoStatus.className = 'promo-status-text success';
+        promoStatus.style.display = 'block';
+      }
+      updateTopUpHint();
+      showToast(`Промокод ${data.code} (+${data.bonusPercent}%) успешно применен!`, 'success');
+    } else {
+      appliedTopUpPromo = null;
+      if (promoStatus) {
+        promoStatus.textContent = data.error || 'Промокод не найден или срок действия истек';
+        promoStatus.className = 'promo-status-text error';
+        promoStatus.style.display = 'block';
+      }
+      updateTopUpHint();
+    }
+  } catch (err) {
+    appliedTopUpPromo = null;
+    if (promoStatus) {
+      promoStatus.textContent = 'Ошибка проверки промокода';
+      promoStatus.className = 'promo-status-text error';
+      promoStatus.style.display = 'block';
+    }
+  }
 }
 
 async function processTopUp() {
@@ -873,7 +963,8 @@ async function processTopUp() {
         uid: currentUser.uid,
         username: currentUser.username,
         amount: amount,
-        currency: selectedTopUpCurrency
+        currency: selectedTopUpCurrency,
+        promoCode: appliedTopUpPromo ? appliedTopUpPromo.code : null
       })
     });
 
@@ -892,13 +983,15 @@ async function processTopUp() {
 
     // Live balance polling (checks every 4 seconds)
     const initialBal = currentUser.balance;
+    const bonusBonus = appliedTopUpPromo ? Math.round(amount * (appliedTopUpPromo.bonusPercent / 100)) : 0;
+    const expectedCredit = amount + bonusBonus;
     let pollAttempts = 0;
     const pollInterval = setInterval(async () => {
       pollAttempts++;
       await syncWithServer();
       if (currentUser && currentUser.balance > initialBal) {
         clearInterval(pollInterval);
-        showToast(`🎉 Оплата прошла! На ваш баланс зачислено +${amount} ₽`, 'success');
+        showToast(`🎉 Оплата прошла! На ваш баланс зачислено +${expectedCredit} ₽`, 'success');
       }
       if (pollAttempts >= 75) {
         clearInterval(pollInterval); // Stop polling after 5 minutes
@@ -916,27 +1009,124 @@ async function processTopUp() {
 }
 
 /* -------------------------------------------------------------
-   ADMIN PANEL ENGINE: SUBTABS (Users vs Prices)
+   CLIENT DASHBOARD: LICENSE KEY ACTIVATION
+------------------------------------------------------------- */
+async function activateLicenseKey() {
+  if (!currentUser) {
+    openAuthModal('login');
+    return;
+  }
+
+  const input = document.getElementById('licenseKeyInput');
+  const resultBox = document.getElementById('keyActivationResult');
+  const btn = document.getElementById('activateKeyBtn');
+  const key = (input ? input.value : '').trim().toUpperCase();
+
+  if (!key) {
+    if (resultBox) {
+      resultBox.className = 'key-result-msg error';
+      resultBox.innerHTML = '⚠️ Пожалуйста, введите лицензионный ключ подписки.';
+      resultBox.style.display = 'flex';
+    }
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Активация...';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/license/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: currentUser.uid, key })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      if (resultBox) {
+        resultBox.className = 'key-result-msg error';
+        resultBox.innerHTML = `❌ ${data.error || 'Ошибка активации ключа'}`;
+        resultBox.style.display = 'flex';
+      }
+      showToast(data.error || 'Ошибка активации ключа', 'error');
+      return;
+    }
+
+    // Success! Update local user subscription
+    currentUser.subscription = {
+      productId: 'nekronium-sif',
+      productName: data.productName,
+      tierLabel: data.tierLabel,
+      isLifetime: Boolean(data.isLifetime),
+      expiresAt: data.expiresAt,
+      isFrozen: false,
+      remainingSeconds: Boolean(data.isLifetime) ? 3153600000 : Math.floor((data.expiresAt - Date.now()) / 1000)
+    };
+
+    saveUsersToStorage();
+    updateNavAuth();
+    renderSubscriptionCard();
+    input.value = '';
+
+    if (resultBox) {
+      resultBox.className = 'key-result-msg success';
+      resultBox.innerHTML = `🎉 Ключ успешно активирован! Доступ к продукту <strong>${data.productName} (${data.tierLabel})</strong> открыт!`;
+      resultBox.style.display = 'flex';
+    }
+
+    showToast(`Лицензия "${data.productName}" успешно активирована!`, 'success');
+
+  } catch (e) {
+    if (resultBox) {
+      resultBox.className = 'key-result-msg error';
+      resultBox.innerHTML = '⚠️ Ошибка подключения к серверу активации ключей';
+      resultBox.style.display = 'flex';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Активировать';
+    }
+  }
+}
+
+/* -------------------------------------------------------------
+   ADMIN PANEL ENGINE: SUBTABS (Users, Prices, Promos, Keys, Banner)
 ------------------------------------------------------------- */
 function switchAdminSubtab(subtab) {
   activeAdminSubtab = subtab;
-  const btnUsers = document.getElementById('adminSubtabBtnUsers');
-  const btnPrices = document.getElementById('adminSubtabBtnPrices');
-  const paneUsers = document.getElementById('adminPaneUsers');
-  const panePrices = document.getElementById('adminPanePrices');
+  const subtabs = ['users', 'prices', 'promos', 'keys', 'banner'];
+
+  subtabs.forEach(s => {
+    const btn = document.getElementById(`adminSubtabBtn${s.charAt(0).toUpperCase() + s.slice(1)}`);
+    const pane = document.getElementById(`adminPane${s.charAt(0).toUpperCase() + s.slice(1)}`);
+
+    if (s === subtab) {
+      if (btn) btn.classList.add('active');
+      if (pane) pane.style.display = 'block';
+    } else {
+      if (btn) btn.classList.remove('active');
+      if (pane) pane.style.display = 'none';
+    }
+  });
 
   if (subtab === 'users') {
-    btnUsers.classList.add('active');
-    btnPrices.classList.remove('active');
-    paneUsers.style.display = 'block';
-    panePrices.style.display = 'none';
     renderAdminTable();
-  } else {
-    btnUsers.classList.remove('active');
-    btnPrices.classList.add('active');
-    paneUsers.style.display = 'none';
-    panePrices.style.display = 'block';
+  } else if (subtab === 'prices') {
     renderConfigEditor();
+  } else if (subtab === 'promos') {
+    loadAdminPromos();
+  } else if (subtab === 'keys') {
+    populateAdminKeyProducts();
+    loadAdminKeys();
+  } else if (subtab === 'banner') {
+    const enabledInput = document.getElementById('adminBannerEnabled');
+    const textInput = document.getElementById('adminBannerText');
+    const ann = (appConfig && appConfig.announcement) || { enabled: false, text: '' };
+    if (enabledInput) enabledInput.checked = Boolean(ann.enabled);
+    if (textInput) textInput.value = ann.text || '';
   }
 }
 
@@ -958,14 +1148,17 @@ function renderAdminTable() {
 
   const filtered = appUsers.filter(u => 
     String(u.uid).includes(search) || 
-    u.username.toLowerCase().includes(search)
+    u.username.toLowerCase().includes(search) ||
+    (u.ip && u.ip.toLowerCase().includes(search))
   );
 
   tbody.innerHTML = filtered.map(u => {
     let subStatusText = '<span class="badge badge-inactive">НЕТ</span>';
     let timeLeftText = '—';
 
-    if (u.subscription) {
+    if (u.isBanned) {
+      subStatusText = '<span class="badge badge-banned">🚫 ЗАБАНЕН</span>';
+    } else if (u.subscription) {
       if (u.subscription.isLifetime) {
         subStatusText = '<span class="badge badge-success">LIFETIME</span>';
         timeLeftText = '∞ Навсегда';
@@ -986,13 +1179,17 @@ function renderAdminTable() {
     const isFrozen = hasSub && u.subscription.isFrozen;
     const freezeIcon = isFrozen ? '☀️' : '❄️';
     const freezeTitle = isFrozen ? 'Разморозить' : 'Заморозить';
+    const banIcon = u.isBanned ? '🔓' : '🚫';
+    const banTitle = u.isBanned ? 'Разбанить' : 'Забанить';
 
     const roleInfo = getUserDisplayRole(u);
+    const ipDisplay = u.ip ? `<code style="font-size: 0.78rem; color: var(--accent-cyan);">${u.ip}</code>` : '<span style="color: var(--text-muted); font-size: 0.78rem;">—</span>';
 
     return `
       <tr>
         <td><strong>#${u.uid}</strong></td>
-        <td>${u.username}</td>
+        <td><strong>${u.username}</strong></td>
+        <td>${ipDisplay}</td>
         <td><span class="badge badge-role ${roleInfo.badgeClass}">${roleInfo.label}</span></td>
         <td style="color: var(--accent-emerald); font-weight: 700;">${u.balance.toFixed(2)} ₽</td>
         <td>${u.subscription ? u.subscription.productName : '—'}</td>
@@ -1003,6 +1200,7 @@ function renderAdminTable() {
             <button class="btn btn-secondary btn-icon" title="Редактировать" onclick="openAdminUserEdit(${u.uid})">⚙️</button>
             <button class="btn btn-warning btn-icon" title="${freezeTitle}" onclick="adminToggleUserFreeze(${u.uid})" ${!hasSub ? 'disabled' : ''}>${freezeIcon}</button>
             <button class="btn btn-danger btn-icon" title="Снести сабку" onclick="adminWipeUserSubscription(${u.uid})" ${!hasSub ? 'disabled' : ''}>❌</button>
+            <button class="btn ${u.isBanned ? 'btn-secondary' : 'btn-danger'} btn-icon" title="${banTitle}" onclick="adminToggleUserBan(${u.uid})" ${u.role === 'admin' ? 'disabled' : ''}>${banIcon}</button>
           </div>
         </td>
       </tr>
@@ -1012,6 +1210,44 @@ function renderAdminTable() {
 
 function filterAdminUsers() {
   renderAdminTable();
+}
+
+// Admin: Ban / Unban user
+async function adminToggleUserBan(uid) {
+  const target = appUsers.find(u => u.uid === uid);
+  if (!target) return;
+
+  if (target.role === 'admin') {
+    showToast('Невозможно забанить администратора!', 'error');
+    return;
+  }
+
+  const willBan = !target.isBanned;
+  const confirmMsg = willBan 
+    ? `Вы уверены, что хотите ЗАБАНИТЬ пользователя ${target.username} (UID #${target.uid})? Он не сможет входить на сайт и в лоадер.`
+    : `РАЗБАНИТЬ пользователя ${target.username} (UID #${target.uid})?`;
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/user/ban`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: target.uid, banned: willBan })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      target.isBanned = willBan;
+      saveUsersToStorage(target);
+      renderAdminTable();
+      showToast(`Пользователь #${target.uid} (${target.username}) ${willBan ? 'заблокирован 🚫' : 'разблокирован ✅'}!`, 'success');
+    } else {
+      showToast('Ошибка при изменении статуса блокировки', 'error');
+    }
+  } catch (e) {
+    showToast('Ошибка связи с сервером', 'error');
+  }
 }
 
 // Admin: Toggle Freeze for any user
@@ -1347,6 +1583,258 @@ function importConfigJsonPrompt() {
   } catch (err) {
     showToast('Ошибка парсинга JSON: ' + err.message, 'error');
   }
+}
+
+/* -------------------------------------------------------------
+   ADMIN: PROMO CODES MANAGEMENT
+------------------------------------------------------------- */
+function adminGenRandomPromo() {
+  const prefixes = ['NEKRO', 'VIP', 'BOOST', 'SALE', 'SPECIAL'];
+  const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const n = [15, 20, 25, 30, 50][Math.floor(Math.random() * 5)];
+  const input = document.getElementById('adminPromoCodeInput');
+  if (input) input.value = `${p}${n}`;
+  const bonus = document.getElementById('adminPromoBonusInput');
+  if (bonus) bonus.value = n;
+}
+
+async function adminCreatePromo() {
+  const codeInput = document.getElementById('adminPromoCodeInput');
+  const bonusInput = document.getElementById('adminPromoBonusInput');
+  const usesInput = document.getElementById('adminPromoUsesInput');
+
+  const code = (codeInput?.value || '').trim().toUpperCase();
+  const bonusPercent = Number(bonusInput?.value);
+  const uses = Number(usesInput?.value) || 9999;
+
+  if (!code) {
+    showToast('Введите название промокода', 'error');
+    return;
+  }
+  if (isNaN(bonusPercent) || bonusPercent <= 0) {
+    showToast('Введите корректный процент бонуса (например: 20)', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/promo/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, bonusPercent, uses })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      showToast(`Промокод "${code}" (+${bonusPercent}%) успешно создан!`, 'success');
+      if (codeInput) codeInput.value = '';
+      loadAdminPromos();
+    } else {
+      showToast(data.error || 'Ошибка при создании промокода', 'error');
+    }
+  } catch (e) {
+    showToast('Ошибка соединения с сервером', 'error');
+  }
+}
+
+async function loadAdminPromos() {
+  const tbody = document.getElementById('adminPromosTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Загрузка списка промокодов...</td></tr>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/promo/list`);
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.promocodes) {
+      if (data.promocodes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 24px;">Активных промокодов пока нет. Создайте первый промокод выше!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.promocodes.map(p => {
+        const createdDate = p.created_at ? new Date(p.created_at).toLocaleDateString('ru-RU') : '—';
+        return `
+          <tr>
+            <td><span class="code-pill" title="Кликните чтобы скопировать" onclick="copyTextToClipboard('${p.code}')">${p.code} 📋</span></td>
+            <td><strong style="color: var(--accent-emerald);">+${p.bonus_percent}%</strong></td>
+            <td>${p.uses_left} раз(а)</td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">${createdDate}</td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="adminDeletePromo('${p.code}')">🗑️ Удалить</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Не удалось загрузить промокоды</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #ef4444;">Ошибка загрузки промокодов</td></tr>';
+  }
+}
+
+async function adminDeletePromo(code) {
+  if (!confirm(`Удалить промокод ${code}?`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/promo/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    if (res.ok) {
+      showToast(`Промокод ${code} удален`, 'info');
+      loadAdminPromos();
+    }
+  } catch (e) {
+    showToast('Ошибка при удалении промокода', 'error');
+  }
+}
+
+/* -------------------------------------------------------------
+   ADMIN: LICENSE KEYS GENERATION & MANAGEMENT
+------------------------------------------------------------- */
+function populateAdminKeyProducts() {
+  const select = document.getElementById('adminKeyProductSelect');
+  if (!select || !appConfig || !appConfig.products) return;
+
+  select.innerHTML = appConfig.products.map(p => `
+    <option value="${p.id}" data-name="${p.name}">${p.name} (${p.game})</option>
+  `).join('');
+}
+
+async function adminGenerateKeys() {
+  const prodSelect = document.getElementById('adminKeyProductSelect');
+  const durSelect = document.getElementById('adminKeyDurationSelect');
+  const countInput = document.getElementById('adminKeyCountInput');
+
+  const productId = prodSelect?.value || 'nekronium-sif';
+  const selectedOpt = prodSelect?.options[prodSelect.selectedIndex];
+  const productName = selectedOpt?.getAttribute('data-name') || 'Nekronium SIF';
+
+  const durationVal = durSelect?.value || '30';
+  const isLifetime = (durationVal === 'lifetime');
+  const days = isLifetime ? 36500 : Number(durationVal);
+  const tierLabel = isLifetime ? 'Навсегда (Lifetime)' : `${days} дней`;
+  const count = Math.min(50, Math.max(1, Number(countInput?.value) || 1));
+
+  try {
+    const res = await fetch(`${API_BASE}/api/license/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId,
+        productName,
+        tierLabel,
+        days,
+        isLifetime,
+        count
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      showToast(`Успешно сгенерировано ${data.keys.length} лицензионных ключей!`, 'success');
+      loadAdminKeys();
+    } else {
+      showToast(data.error || 'Ошибка при генерации ключей', 'error');
+    }
+  } catch (e) {
+    showToast('Ошибка связи с сервером', 'error');
+  }
+}
+
+async function loadAdminKeys() {
+  const tbody = document.getElementById('adminKeysTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Загрузка ключей...</td></tr>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/license/list`);
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.keys) {
+      if (data.keys.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 24px;">База сгенерированных ключей пуста. Сгенерируйте ключи выше!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.keys.map(k => {
+        const isUsed = Boolean(k.is_used);
+        const statusBadge = isUsed 
+          ? `<span class="badge badge-inactive">ИСПОЛЬЗОВАН (UID #${k.used_by_uid || '?'})</span>`
+          : `<span class="badge badge-success">АКТИВЕН ✓</span>`;
+        const dateStr = k.created_at ? new Date(k.created_at).toLocaleDateString('ru-RU') : '—';
+
+        return `
+          <tr>
+            <td>
+              <span class="code-pill" title="Кликните чтобы скопировать" onclick="copyTextToClipboard('${k.key}')">
+                ${k.key} 📋
+              </span>
+            </td>
+            <td><strong>${k.product_name}</strong></td>
+            <td>${k.tier_label}</td>
+            <td>${statusBadge}</td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td>
+          </tr>
+        `;
+      }).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Не удалось загрузить ключи</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #ef4444;">Ошибка загрузки ключей</td></tr>';
+  }
+}
+
+function copyTextToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(`Скопировано в буфер: ${text}`, 'success');
+  }).catch(() => {
+    prompt('Скопируйте вручную:', text);
+  });
+}
+
+/* -------------------------------------------------------------
+   GLOBAL ANNOUNCEMENT BANNER
+------------------------------------------------------------- */
+function renderAnnouncementBanner() {
+  const banner = document.getElementById('announcementBanner');
+  const bannerText = document.getElementById('announcementText');
+  if (!banner || !bannerText) return;
+
+  if (sessionStorage.getItem('dismiss_announcement_banner') === '1') {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const ann = (appConfig && appConfig.announcement) || null;
+  if (ann && ann.enabled && ann.text && ann.text.trim()) {
+    bannerText.textContent = ann.text.trim();
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function closeAnnouncementBanner() {
+  const banner = document.getElementById('announcementBanner');
+  if (banner) banner.style.display = 'none';
+  sessionStorage.setItem('dismiss_announcement_banner', '1');
+}
+
+function saveAdminBannerConfig() {
+  const enabled = document.getElementById('adminBannerEnabled')?.checked || false;
+  const text = document.getElementById('adminBannerText')?.value?.trim() || '';
+
+  if (!appConfig) appConfig = {};
+  appConfig.announcement = { enabled, text };
+
+  sessionStorage.removeItem('dismiss_announcement_banner'); // Reset dismissal when admin updates banner
+  saveConfigToStorage();
+  renderAnnouncementBanner();
+  showToast('Настройки верхнего баннера успешно сохранены и применены!', 'success');
 }
 
 /* -------------------------------------------------------------
