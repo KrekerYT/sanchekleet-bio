@@ -734,6 +734,7 @@ function downloadLoader() {
 /* -------------------------------------------------------------
    Balance Top-Up Modal (Shows "Soon.")
 ------------------------------------------------------------- */
+let selectedTopUpProvider = 'lava';
 let selectedTopUpCurrency = 'RUB';
 
 function openTopUpModal() {
@@ -749,7 +750,8 @@ function closeTopUpModal() {
   document.getElementById('topUpModal').classList.remove('open');
 }
 
-function selectTopUpMethod(currency, el) {
+function selectTopUpMethod(provider, currency, el) {
+  selectedTopUpProvider = provider;
   selectedTopUpCurrency = currency;
   document.querySelectorAll('#topUpMethodsList .method').forEach(m => m.classList.remove('active'));
   if (el) el.classList.add('active');
@@ -762,7 +764,9 @@ function updateTopUpHint() {
   const amount = Number(amountInput ? amountInput.value : 890) || 890;
   
   if (!hint) return;
-  if (selectedTopUpCurrency === 'USD') {
+  if (selectedTopUpProvider === 'cryptobot') {
+    hint.innerHTML = `💡 Оплата криптовалютой через <strong>@CryptoBot</strong> (USDT, TON, BTC, SOL и др.). На баланс зачислится <strong>${amount} ₽</strong>.`;
+  } else if (selectedTopUpCurrency === 'USD') {
     const usd = Math.max(1.20, Math.round((amount / 92) * 100) / 100);
     hint.innerHTML = `💡 К оплате: <strong>~${usd} $</strong> (с карты спишется в гривнах / валюте карты без блокировок НБУ). На баланс зачислится <strong>${amount} ₽</strong>.`;
   } else {
@@ -794,11 +798,12 @@ async function processTopUp() {
   const originalText = submitBtn ? submitBtn.textContent : 'Перейти к оплате';
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Генерация счёта...';
+    submitBtn.textContent = selectedTopUpProvider === 'cryptobot' ? 'Создание счёта в CryptoBot...' : 'Генерация счёта...';
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/lava/create`, {
+    const apiEndpoint = (selectedTopUpProvider === 'cryptobot') ? `${API_BASE}/api/cryptobot/create` : `${API_BASE}/api/lava/create`;
+    const res = await fetch(apiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -819,7 +824,7 @@ async function processTopUp() {
     closeTopUpModal();
     showToast('Счёт создан! Перенаправление на оплату...', 'success');
 
-    // Open Lava payment page in new tab
+    // Open payment page in new tab
     window.open(data.paymentUrl, '_blank');
 
     // Live balance polling (checks every 4 seconds)
