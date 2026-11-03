@@ -11,6 +11,9 @@ const STORAGE_KEYS = {
   CONFIG: 'nekronium_config_v2'
 };
 
+// Cloudflare Worker API URL (Connected to D1 Database)
+const API_BASE = 'https://nekronium-db.easyhubapi.workers.dev';
+
 // Global State
 let appConfig = null;
 let appUsers = [];
@@ -156,23 +159,21 @@ function initStorage() {
   }
 }
 
-function saveUsersToStorage() {
+function saveUsersToStorage(userToSave = null) {
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(appUsers));
-  if (window.location.protocol.startsWith('http')) {
-    if (currentUser) {
-      fetch('/api/user/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentUser)
-      }).catch(() => {});
-    }
+  const target = userToSave || currentUser;
+  if (target) {
+    fetch(`${API_BASE}/api/user/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(target)
+    }).catch(() => {});
   }
 }
 
 async function syncWithServer() {
-  if (!window.location.protocol.startsWith('http')) return;
   try {
-    const res = await fetch('/api/users');
+    const res = await fetch(`${API_BASE}/api/users`);
     if (res.ok) {
       const data = await res.json();
       if (data.users && Array.isArray(data.users)) {
@@ -402,7 +403,7 @@ function switchAuthMode(mode) {
   clearAuthNotice();
 }
 
-function handleAuthSubmit(event) {
+async function handleAuthSubmit(event) {
   event.preventDefault();
   const username = document.getElementById('authUsername').value.trim();
   const password = document.getElementById('authPassword').value.trim();
@@ -412,58 +413,100 @@ function handleAuthSubmit(event) {
     return;
   }
 
-  if (activeAuthMode === 'login') {
-    const user = appUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-    if (!user) {
-      setAuthNotice('Неверный логин или пароль', 'error');
-      return;
+  const submitBtn = document.getElementById('authSubmitBtn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Обработка...';
+  }
+
+  try {
+    if (activeAuthMode === 'login') {
+      let user = appUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+      
+      // If not in local cache, try to sync from Cloudflare D1
+      if (!user) {
+        await syncWithServer();
+        user = appUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+      }
+
+      if (!user) {
+        setAuthNotice('Неверный логин или пароль', 'error');
+        return;
+      }
+
+      currentUser = user;
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.uid);
+      closeAuthModal();
+      updateNavAuth();
+      updateDashboardView();
+      showToast(`Добро пожаловать, ${user.username}! (UID #${user.uid})`, 'success');
+    } else {
+      // Register directly in Cloudflare D1 via Worker
+      let newUid = null;
+      try {
+        const res = await fetch(`${API_BASE}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || data.error) {
+          setAuthNotice(data.error || 'Ошибка при регистрации', 'error');
+          return;
+        }
+
+        if (data.user && data.user.uid) {
+          newUid = data.user.uid;
+        }
+      } catch (e) {
+        console.warn('Worker register failed, fallback to local:', e);
+      }
+
+      if (!newUid) {
+        let nextUid = Number(localStorage.getItem(STORAGE_KEYS.NEXT_UID) || 2);
+        newUid = nextUid;
+        localStorage.setItem(STORAGE_KEYS.NEXT_UID, String(nextUid + 1));
+      }
+
+      const randomKey = 'NEKRONIUM-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
+                        Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
+                        Math.random().toString(36).substring(2, 6).toUpperCase();
+
+      const newUser = {
+        uid: newUid,
+        username: username,
+        password: password,
+        role: 'user',
+        balance: 0,
+        licenseKey: randomKey,
+        hwid: null,
+        lastHwidReset: null,
+        subscription: null
+      };
+
+      const existingIndex = appUsers.findIndex(u => u.uid === newUser.uid);
+      if (existingIndex >= 0) {
+        appUsers[existingIndex] = newUser;
+      } else {
+        appUsers.push(newUser);
+      }
+
+      saveUsersToStorage(newUser);
+
+      currentUser = newUser;
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, newUser.uid);
+
+      closeAuthModal();
+      updateNavAuth();
+      updateDashboardView();
+      showToast(`Аккаунт успешно создан! Ваш UID: #${newUser.uid}`, 'success');
     }
-
-    currentUser = user;
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.uid);
-    closeAuthModal();
-    updateNavAuth();
-    updateDashboardView();
-    showToast(`Добро пожаловать, ${user.username}! (UID #${user.uid})`, 'success');
-  } else {
-    // Register: Assigns next UID starting from 1 (or 2 if admin is seeded)
-    const existing = appUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
-    if (existing) {
-      setAuthNotice('Пользователь с таким логином уже существует', 'error');
-      return;
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = activeAuthMode === 'login' ? 'Войти в аккаунт' : 'Создать аккаунт (получить UID)';
     }
-
-    let nextUid = Number(localStorage.getItem(STORAGE_KEYS.NEXT_UID) || 2);
-    const newUid = nextUid;
-    localStorage.setItem(STORAGE_KEYS.NEXT_UID, String(nextUid + 1));
-
-    const randomKey = 'NEKRONIUM-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
-                      Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
-                      Math.random().toString(36).substring(2, 6).toUpperCase();
-
-    // Initial balance is 0 for everyone
-    const newUser = {
-      uid: newUid,
-      username: username,
-      password: password,
-      role: 'user',
-      balance: 0,
-      licenseKey: randomKey,
-      hwid: null,
-      lastHwidReset: null,
-      subscription: null
-    };
-
-    appUsers.push(newUser);
-    saveUsersToStorage();
-
-    currentUser = newUser;
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, newUser.uid);
-
-    closeAuthModal();
-    updateNavAuth();
-    updateDashboardView();
-    showToast(`Аккаунт успешно создан! Ваш UID: #${newUser.uid}`, 'success');
   }
 }
 
@@ -818,7 +861,7 @@ function adminToggleUserFreeze(uid) {
     showToast(`Подписка пользователя #${target.uid} разморожена!`, 'success');
   }
 
-  saveUsersToStorage();
+  saveUsersToStorage(target);
   renderAdminTable();
   if (currentUser && currentUser.uid === target.uid) {
     currentUser = target;
@@ -839,7 +882,7 @@ function adminWipeUserSubscription(uid) {
   }
 
   target.subscription = null;
-  saveUsersToStorage();
+  saveUsersToStorage(target);
   renderAdminTable();
 
   if (currentUser && currentUser.uid === target.uid) {
@@ -935,7 +978,7 @@ function saveAdminUserData() {
     }
   }
 
-  saveUsersToStorage();
+  saveUsersToStorage(target);
   closeAdminUserModal();
   renderAdminTable();
 
