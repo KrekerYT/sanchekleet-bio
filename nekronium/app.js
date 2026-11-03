@@ -718,19 +718,17 @@ function downloadLoader() {
     return;
   }
 
-  // Download client executable directly
-  const fileContent = `MZ\x90\x00\x03\x00\x00\x00=== NEKRONIUM CLIENT LOADER ===\nUID: #${currentUser.uid}\nUSERNAME: ${currentUser.username}\nPRODUCT: ${currentUser.subscription.productName}\nSTATUS: ACTIVE\nTIMESTAMP: ${new Date().toISOString()}\n`;
-  const blob = new Blob([fileContent], { type: 'application/octet-stream' });
-  const url = URL.createObjectURL(blob);
+  const downloadUrl = 'https://drive.usercontent.google.com/download?id=1PDbILvvDKW3Dlquzmn8Sko3fYOIzggFI&export=download&authuser=0';
+  
+  showToast('Загрузка NekroniumLoader V1.4 началась!', 'success');
+  
+  // Открываем прямую загрузку
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `NekroniumLoader.exe`;
+  a.href = downloadUrl;
+  a.target = '_blank';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  showToast('Загрузка лоадера началась!', 'success');
 }
 
 /* -------------------------------------------------------------
