@@ -734,20 +734,45 @@ function downloadLoader() {
 /* -------------------------------------------------------------
    Balance Top-Up Modal (Shows "Soon.")
 ------------------------------------------------------------- */
+let selectedTopUpCurrency = 'RUB';
+
 function openTopUpModal() {
   if (!currentUser) {
     openAuthModal('login');
     return;
   }
   document.getElementById('topUpModal').classList.add('open');
+  updateTopUpHint();
 }
 
 function closeTopUpModal() {
   document.getElementById('topUpModal').classList.remove('open');
 }
 
+function selectTopUpMethod(currency, el) {
+  selectedTopUpCurrency = currency;
+  document.querySelectorAll('#topUpMethodsList .method').forEach(m => m.classList.remove('active'));
+  if (el) el.classList.add('active');
+  updateTopUpHint();
+}
+
+function updateTopUpHint() {
+  const hint = document.getElementById('topUpCurrencyHint');
+  const amountInput = document.getElementById('topUpAmountInput');
+  const amount = Number(amountInput ? amountInput.value : 890) || 890;
+  
+  if (!hint) return;
+  if (selectedTopUpCurrency === 'USD') {
+    const usd = Math.max(1.20, Math.round((amount / 92) * 100) / 100);
+    hint.innerHTML = `💡 К оплате: <strong>~${usd} $</strong> (с карты спишется в гривнах / валюте карты без блокировок НБУ). На баланс зачислится <strong>${amount} ₽</strong>.`;
+  } else {
+    hint.innerHTML = `💡 Счёт будет выставлен в рублях: <strong>${amount} ₽</strong> через СБП / Карты РФ.`;
+  }
+}
+
 function setTopUpAmount(amount) {
   document.getElementById('topUpAmountInput').value = amount;
+  updateTopUpHint();
 }
 
 async function processTopUp() {
@@ -779,7 +804,8 @@ async function processTopUp() {
       body: JSON.stringify({
         uid: currentUser.uid,
         username: currentUser.username,
-        amount: amount
+        amount: amount,
+        currency: selectedTopUpCurrency
       })
     });
 
