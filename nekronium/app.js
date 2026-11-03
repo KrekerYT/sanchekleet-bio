@@ -12,7 +12,11 @@ const STORAGE_KEYS = {
 };
 
 // Cloudflare Worker API URL (Connected to D1 Database)
-const API_BASE = 'https://nekronium-db.easyhubapi.workers.dev';
+// Поддерживает как личный поддомен api.sanchek.de (без блокировок РКН), так и workers.dev
+const API_BASE = (window.location.hostname === 'sanchek.de' || window.location.hostname.endsWith('.sanchek.de'))
+  ? 'https://api.sanchek.de'
+  : 'https://nekronium-db.easyhubapi.workers.dev';
+const API_FALLBACK = 'https://nekronium-db.easyhubapi.workers.dev';
 
 // Global State
 let appConfig = null;
@@ -969,23 +973,41 @@ async function processTopUp() {
   }
 
   try {
-    const apiEndpoint = (selectedTopUpProvider === 'cryptobot') ? `${API_BASE}/api/cryptobot/create` : `${API_BASE}/api/lava/create`;
-    const res = await fetch(apiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        uid: currentUser.uid,
-        username: currentUser.username,
-        amount: amount,
-        currency: selectedTopUpCurrency,
-        promoCode: appliedTopUpPromo ? appliedTopUpPromo.code : null
-      })
+    const relativePath = (selectedTopUpProvider === 'cryptobot') ? '/api/cryptobot/create' : '/api/lava/create';
+    let res = null;
+    let data = null;
+
+    const requestPayload = JSON.stringify({
+      uid: currentUser.uid,
+      username: currentUser.username,
+      amount: amount,
+      currency: selectedTopUpCurrency,
+      promoCode: appliedTopUpPromo ? appliedTopUpPromo.code : null
     });
 
-    const data = await res.json().catch(() => ({}));
+    // Попытка через основной эндпоинт, при ошибке соединения — автоматический фоллбэк
+    try {
+      res = await fetch(`${API_BASE}${relativePath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestPayload
+      });
+      data = await res.json().catch(() => ({}));
+    } catch (e1) {
+      if (API_BASE !== API_FALLBACK) {
+        res = await fetch(`${API_FALLBACK}${relativePath}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: requestPayload
+        });
+        data = await res.json().catch(() => ({}));
+      } else {
+        throw e1;
+      }
+    }
 
-    if (!res.ok || !data.success || !data.paymentUrl) {
-      showToast(data.error || 'Ошибка при создании счета на оплату', 'error');
+    if (!res || !res.ok || !data || !data.success || !data.paymentUrl) {
+      showToast((data && data.error) ? data.error : 'Ошибка при создании счета на оплату', 'error');
       return;
     }
 
@@ -1006,7 +1028,7 @@ async function processTopUp() {
     let pollAttempts = 0;
     const pollInterval = setInterval(async () => {
       pollAttempts++;
-      await fetch(`${API_BASE}/api/lava/sync`).catch(() => {});
+      await fetch(`${API_BASE}/api/lava/sync`).catch(() => fetch(`${API_FALLBACK}/api/lava/sync`)).catch(() => {});
       await syncWithServer();
       if (currentUser && currentUser.balance > initialBal) {
         clearInterval(pollInterval);
@@ -1018,7 +1040,8 @@ async function processTopUp() {
     }, 3000);
 
   } catch (err) {
-    showToast('Ошибка подключения к платёжному серверу', 'error');
+    console.error('Payment connect error:', err);
+    showToast('Сбой сети при подключении к платежному шлюзу. Попробуйте обновить страницу.', 'error');
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
