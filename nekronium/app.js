@@ -237,9 +237,11 @@ function updateNavAuth() {
   const navAdminBtn = document.getElementById('navAdminBtn');
 
   if (currentUser) {
+    const roleInfo = getUserDisplayRole(currentUser);
     navAuthArea.innerHTML = `
       <div class="user-nav-badge">
         <span class="nav-uid">UID: #${currentUser.uid}</span>
+        <span class="badge badge-role ${roleInfo.badgeClass}" style="padding: 2px 7px; font-size: 0.7rem; letter-spacing: 0.5px;">${roleInfo.label}</span>
         <span class="nav-bal">${currentUser.balance.toFixed(2)} ₽</span>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="logoutUser()">Выйти</button>
@@ -533,6 +535,30 @@ function clearAuthNotice() {
 }
 
 /* -------------------------------------------------------------
+   User Display Role Helper (ADMIN / CUSTOMER / USER)
+   Если есть активная подписка или баланс >= 100 -> CUSTOMER
+------------------------------------------------------------- */
+function getUserDisplayRole(user) {
+  if (!user) return { label: 'USER', badgeClass: '' };
+  if (user.role === 'admin') {
+    return { label: 'ADMIN', badgeClass: 'admin' };
+  }
+
+  const hasSub = Boolean(user.subscription && (
+    user.subscription.isLifetime ||
+    (user.subscription.expiresAt && user.subscription.expiresAt > Date.now()) ||
+    user.subscription.isFrozen
+  ));
+  const hasBalance = (Number(user.balance) || 0) >= 100;
+
+  if (hasSub || hasBalance) {
+    return { label: 'CUSTOMER', badgeClass: 'customer' };
+  }
+
+  return { label: 'USER', badgeClass: '' };
+}
+
+/* -------------------------------------------------------------
    Client Dashboard View & Freeze System
 ------------------------------------------------------------- */
 function updateDashboardView() {
@@ -554,13 +580,10 @@ function updateDashboardView() {
   document.getElementById('profileUid').textContent = `UID: #${currentUser.uid}`;
   document.getElementById('profileBalance').textContent = `${currentUser.balance.toFixed(2)} ₽`;
 
+  const displayRole = getUserDisplayRole(currentUser);
   const roleBadge = document.getElementById('profileRole');
-  roleBadge.textContent = currentUser.role.toUpperCase();
-  if (currentUser.role === 'admin') {
-    roleBadge.className = 'badge badge-role admin';
-  } else {
-    roleBadge.className = 'badge badge-role';
-  }
+  roleBadge.textContent = displayRole.label;
+  roleBadge.className = `badge badge-role ${displayRole.badgeClass}`.trim();
 
   // Subscription Details
   renderSubscriptionCard();
@@ -806,11 +829,13 @@ function renderAdminTable() {
     const freezeIcon = isFrozen ? '☀️' : '❄️';
     const freezeTitle = isFrozen ? 'Разморозить' : 'Заморозить';
 
+    const roleInfo = getUserDisplayRole(u);
+
     return `
       <tr>
         <td><strong>#${u.uid}</strong></td>
         <td>${u.username}</td>
-        <td><span class="badge badge-role ${u.role === 'admin' ? 'admin' : ''}">${u.role.toUpperCase()}</span></td>
+        <td><span class="badge badge-role ${roleInfo.badgeClass}">${roleInfo.label}</span></td>
         <td style="color: var(--accent-emerald); font-weight: 700;">${u.balance.toFixed(2)} ₽</td>
         <td>${u.subscription ? u.subscription.productName : '—'}</td>
         <td style="font-family: var(--font-mono); font-size: 0.85rem;">${timeLeftText}</td>
