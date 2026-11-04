@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NEKRONIUM // Private Software & Client Portal</title>
+  <title>NEKRONIUM // Private Software</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -464,18 +464,15 @@
       <div class="form-group">
         <label>Способ оплаты</label>
         <div class="payment-methods" id="topUpMethodsList">
-          <div class="method active" data-provider="lava" data-currency="RUB" onclick="selectTopUpMethod('lava', 'RUB', this)">
-            🇷🇺 РФ: СБП, Карты МИР (Рубли)
+          <div class="method active" data-provider="cryptobot" data-currency="RUB" onclick="selectTopUpMethod('cryptobot', 'RUB', this)">
+            💎 Криптовалюта (CryptoBot: USDT, TON, BTC, TRX, Карты P2P)
           </div>
-          <div class="method" data-provider="lava" data-currency="USD" onclick="selectTopUpMethod('lava', 'USD', this)">
-            🇺🇦 🌍 Украина & Зарубеж (Monobank, Приват, Visa/MC)
-          </div>
-          <div class="method" data-provider="cryptobot" data-currency="RUB" onclick="selectTopUpMethod('cryptobot', 'RUB', this)">
-            💎 Криптовалюта (CryptoBot: USDT, TON, BTC, SOL)
+          <div class="method disabled" style="opacity: 0.45; cursor: not-allowed; border-style: dashed;" title="Подключение новой кассы (Aaio)">
+            💳 Карты РФ / СБП / Украина (Скоро / Тех. работы)
           </div>
         </div>
         <div id="topUpCurrencyHint" style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: -6px; margin-bottom: 14px; line-height: 1.4;">
-          💡 Счёт будет выставлен в рублях: 890 ₽ через СБП / Карты РФ
+          💡 Оплата криптовалютой через Telegram @CryptoBot (USDT, TON, BTC, TRX и др.). Моментальное зачисление!
         </div>
       </div>
 
