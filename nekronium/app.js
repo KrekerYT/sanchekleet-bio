@@ -11,9 +11,19 @@ const STORAGE_KEYS = {
   CONFIG: 'nekronium_config_v2'
 };
 
+// HTML Escaping to prevent XSS injection
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Cloudflare Worker API URL (Connected to D1 Database)
 const API_BASE = 'https://nekronium-db.easyhubapi.workers.dev';
-const API_FALLBACK = 'https://nekronium-db.easyhubapi.workers.dev';
 
 // Global State
 let appConfig = null;
@@ -90,12 +100,19 @@ async function checkReturnedPayment() {
   const urlParams = new URLSearchParams(window.location.search);
   const status = urlParams.get('status');
   if (status === 'success') {
-    showToast('Проверка подтверждения оплаты Lava...', 'info');
-    await fetch(`${API_BASE}/api/lava/sync`).catch(() => {});
+    const prevBalance = currentUser ? currentUser.balance : 0;
+    showToast('Проверка подтверждения платежа на сервере...', 'info');
     await syncWithServer();
-    showToast('🎉 Оплата успешно подтверждена и зачислена на баланс!', 'success');
+    if (currentUser && currentUser.balance > prevBalance) {
+      showToast(`🎉 Оплата успешно подтверждена! На баланс зачислено +${(currentUser.balance - prevBalance).toFixed(2)} ₽`, 'success');
+    } else {
+      showToast('Платёж принят в обработку. Баланс обновится автоматически.', 'info');
+    }
     window.history.replaceState({}, document.title, window.location.pathname);
     switchTab('dashboard');
+  } else if (status === 'fail') {
+    showToast('Оплата была отменена или не завершена.', 'warning');
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 }
 
@@ -141,15 +158,27 @@ function getAuthHeaders() {
   };
 }
 
-function saveConfigToStorage() {
+async function saveConfigToStorage() {
   localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(appConfig));
   if (currentUser && currentUser.role === 'admin') {
-    fetch(`${API_BASE}/api/config`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ config: appConfig })
-    }).catch(() => {});
+    try {
+      const res = await fetch(`${API_BASE}/api/config`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ config: appConfig })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        showToast((data && data.error) ? data.error : 'Ошибка сохранения конфигурации на сервере', 'error');
+        return false;
+      }
+      return true;
+    } catch (e) {
+      showToast('Ошибка сети при сохранении конфигурации на сервере', 'error');
+      return false;
+    }
   }
+  return true;
 }
 
 /* -------------------------------------------------------------
@@ -179,17 +208,8 @@ function initStorage() {
 function saveUsersToStorage(userToSave = null) {
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(appUsers));
   const target = userToSave || currentUser;
-  if (target) {
-    if (currentUser && currentUser.uid === target.uid) {
-      localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
-    }
-    if (currentUser && currentUser.role === 'admin') {
-      fetch(`${API_BASE}/api/user/save`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(target)
-      }).catch(() => {});
-    }
+  if (target && currentUser && currentUser.uid === target.uid) {
+    localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
   }
 }
 
@@ -210,9 +230,12 @@ async function fetchAdminUsers() {
 }
 
 async function syncWithServer() {
-  if (currentUser && currentUser.uid) {
+  const token = localStorage.getItem('nekronium_auth_token');
+  if (currentUser && token) {
     try {
-      const res = await fetch(`${API_BASE}/api/user/me?uid=${currentUser.uid}`);
+      const res = await fetch(`${API_BASE}/api/user/me`, {
+        headers: getAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.user) {
@@ -221,6 +244,9 @@ async function syncWithServer() {
           updateNavAuth();
           updateDashboardView();
         }
+      } else if (res.status === 401 || res.status === 403) {
+        // Токен устарел или аккаунт забанен
+        handleLogout();
       }
     } catch (err) {}
   }
@@ -331,29 +357,35 @@ function renderProducts() {
   const grid = document.getElementById('productsGrid');
   if (!grid || !appConfig || !appConfig.products) return;
 
+  let anyDetected = false;
+  let anyUpdating = false;
+
   grid.innerHTML = appConfig.products.map(prod => {
     if (!selectedProductTiers[prod.id] && prod.tiers && prod.tiers.length > 0) {
       selectedProductTiers[prod.id] = prod.tiers[0].key;
     }
 
+    if (prod.status === 'Detected') anyDetected = true;
+    if (prod.status === 'Updating') anyUpdating = true;
+
     const currentSelectedTierKey = selectedProductTiers[prod.id];
     const currentTier = prod.tiers.find(t => t.key === currentSelectedTierKey) || prod.tiers[0];
 
-    const pricingButtons = prod.tiers.map(tier => {
+    const pricingButtons = (prod.tiers || []).map(tier => {
       const isSelected = tier.key === currentSelectedTierKey;
-      let priceDisplay = `<span class="tier-price">${tier.price} ₽</span>`;
+      let priceDisplay = `<span class="tier-price">${Number(tier.price)} ₽</span>`;
       if (tier.hasDiscount && tier.oldPrice && tier.oldPrice > tier.price) {
         priceDisplay = `
           <span class="tier-price">
-            <span class="tier-old-price">${tier.oldPrice} ₽</span>
-            <span style="color: var(--accent-emerald);">${tier.price} ₽</span>
+            <span class="tier-old-price">${Number(tier.oldPrice)} ₽</span>
+            <span style="color: var(--accent-emerald);">${Number(tier.price)} ₽</span>
           </span>
         `;
       }
       return `
         <button type="button" class="tier-btn ${isSelected ? 'selected' : ''}" 
-                onclick="selectTier('${prod.id}', '${tier.key}')">
-          ${tier.label}
+                onclick="selectTier('${escapeHtml(prod.id)}', '${escapeHtml(tier.key)}')">
+          ${escapeHtml(tier.label)}
           ${priceDisplay}
         </button>
       `;
@@ -380,28 +412,29 @@ function renderProducts() {
       discountBadgeHtml = `<span class="badge badge-sale">🔥 СКИДКА -${pct}%</span>`;
     }
 
-    let buyBtnPrice = `${currentTier ? currentTier.price : 0} ₽`;
+    let buyBtnHtml = `Купить (${currentTier ? currentTier.price : 0} ₽)`;
     if (currentTier && currentTier.hasDiscount && currentTier.oldPrice && currentTier.oldPrice > currentTier.price) {
-      buyBtnPrice = `${currentTier.price} ₽ <span class="btn-old-price">${currentTier.oldPrice} ₽</span>`;
+      const discountPct = Math.round((1 - currentTier.price / currentTier.oldPrice) * 100);
+      buyBtnHtml = `Купить (${currentTier.price} ₽) <span class="btn-old-price" style="color: #dc2626 !important; text-decoration: line-through !important; font-weight: 700; margin-left: 6px; background: rgba(220, 38, 38, 0.12) !important; padding: 2px 7px !important; border-radius: 5px !important; display: inline-block !important; border: 1px solid rgba(220, 38, 38, 0.25) !important;">${currentTier.oldPrice} ₽</span> <span class="btn-discount-tag" style="background: #dc2626 !important; color: #ffffff !important; font-size: 0.72rem !important; font-weight: 800 !important; padding: 2px 6px !important; border-radius: 4px !important; margin-left: 5px !important; display: inline-block !important;">-${discountPct}%</span>`;
     }
 
     return `
-      <div class="product-card" id="card-${prod.id}">
+      <div class="product-card" id="card-${escapeHtml(prod.id)}">
         <div>
           <div class="product-top">
             <div>
-              <span class="product-game-tag">${prod.game}</span>
-              <h3 class="product-name">${prod.name}</h3>
-              <div class="product-update-tag">🕒 Обновлен: <strong>${prod.lastUpdated || 'Сегодня'}</strong></div>
+              <span class="product-game-tag">${escapeHtml(prod.game)}</span>
+              <h3 class="product-name">${escapeHtml(prod.name)}</h3>
+              <div class="product-update-tag">🕒 Обновлен: <strong>${escapeHtml(prod.lastUpdated || 'Сегодня')}</strong></div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-              <span class="badge ${statusBadgeClass}">${statusIcon} ${prod.status}</span>
+              <span class="badge ${statusBadgeClass}">${statusIcon} ${escapeHtml(prod.status)}</span>
               ${discountBadgeHtml}
             </div>
           </div>
 
           <ul class="features-list">
-            ${prod.features.map(f => `<li>${f}</li>`).join('')}
+            ${(prod.features || []).map(f => `<li>${escapeHtml(f)}</li>`).join('')}
           </ul>
         </div>
 
@@ -410,13 +443,25 @@ function renderProducts() {
             ${pricingButtons}
           </div>
 
-          <button class="btn btn-primary btn-block btn-glow" onclick="purchaseProduct('${prod.id}')">
-            Купить (${buyBtnPrice})
+          <button class="btn btn-primary btn-block btn-glow" id="btn-buy-${escapeHtml(prod.id)}" onclick="purchaseProduct('${escapeHtml(prod.id)}')">
+            ${buyBtnHtml}
           </button>
         </div>
       </div>
     `;
   }).join('');
+
+  // Обновляем общий статус системы в шапке
+  const heroTag = document.getElementById('heroSystemStatusTag');
+  if (heroTag) {
+    if (anyDetected) {
+      heroTag.innerHTML = '<span style="color: #ef4444; font-weight: 800;">⚠️ ВНИМАНИЕ: ЕСТЬ ОБНАРУЖЕННЫЙ СОФТ // ПРОВЕРЯЙТЕ СТАТУС</span>';
+    } else if (anyUpdating) {
+      heroTag.innerHTML = '<span style="color: #fbbf24; font-weight: 800;">🔄 ОБНОВЛЕНИЕ СОФТА // ПРОВОДЯТСЯ ТЕСТЫ</span>';
+    } else {
+      heroTag.innerHTML = '<span class="pulse-indicator"></span> СТАТУС: UNDETECTED // БЕЗОПАСЕН К ИСПОЛЬЗОВАНИЮ';
+    }
+  }
 }
 
 function selectTier(productId, tierKey) {
@@ -424,7 +469,10 @@ function selectTier(productId, tierKey) {
   renderProducts();
 }
 
+let isPurchasing = false;
 async function purchaseProduct(productId) {
+  if (isPurchasing) return;
+
   if (!currentUser) {
     openAuthModal('login');
     showToast('Пожалуйста, авторизуйтесь для покупки товара', 'info');
@@ -445,19 +493,20 @@ async function purchaseProduct(productId) {
     return;
   }
 
+  isPurchasing = true;
+  const buyBtn = document.getElementById(`btn-buy-${productId}`);
+  if (buyBtn) {
+    buyBtn.disabled = true;
+    buyBtn.textContent = 'Оформление покупки...';
+  }
+
   try {
-    const isLifetime = tier.key === 'lifetime';
     const res = await fetch(`${API_BASE}/api/purchase/buy`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
-        uid: currentUser.uid,
         productId: product.id,
-        productName: product.name,
-        tierDays: tier.days,
-        isLifetime: isLifetime,
-        tierLabel: tier.label,
-        price: cost
+        tierKey: tier.key
       })
     });
     const data = await res.json().catch(() => ({}));
@@ -467,13 +516,16 @@ async function purchaseProduct(productId) {
       localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
       updateNavAuth();
       updateDashboardView();
-      showToast(`Успешно приобретено: "${product.name}" (${tier.label})!`, 'success');
+      showToast(`🎉 Успешно приобретено: "${product.name}" (${tier.label})!`, 'success');
       switchTab('dashboard');
     } else {
       showToast(data.error || 'Ошибка при оформлении покупки', 'error');
     }
   } catch (e) {
     showToast('Ошибка связи с сервером при покупке', 'error');
+  } finally {
+    isPurchasing = false;
+    renderProducts();
   }
 }
 
@@ -511,7 +563,7 @@ function switchAuthMode(mode) {
 async function handleAuthSubmit(event) {
   event.preventDefault();
   const username = document.getElementById('authUsername').value.trim();
-  const password = document.getElementById('authPassword').value.trim();
+  const password = document.getElementById('authPassword').value;
 
   if (!username || !password) {
     setAuthNotice('Заполните все поля формы', 'error');
@@ -519,6 +571,19 @@ async function handleAuthSubmit(event) {
   }
 
   const submitBtn = document.getElementById('authSubmitBtn');
+
+  if (activeAuthMode === 'register') {
+    // Валидация логина: строго английские буквы и цифры от 3 до 20 символов
+    if (!/^[a-zA-Z0-9]{3,20}$/.test(username)) {
+      setAuthNotice('Логин может содержать только английские буквы и цифры (от 3 до 20 символов, без пробелов и знаков)!', 'error');
+      return;
+    }
+    if (password.length < 8 || password.length > 128) {
+      setAuthNotice('Пароль должен содержать от 8 до 128 символов!', 'error');
+      return;
+    }
+  }
+
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Обработка...';
@@ -562,30 +627,11 @@ async function handleAuthSubmit(event) {
         return;
       }
 
-      // Auto-login
-      const loginRes = await fetch(`${API_BASE}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const loginData = await loginRes.json().catch(() => ({}));
-
-      if (loginRes.ok && loginData.success) {
-        currentUser = loginData.user;
-        if (loginData.token) {
-          localStorage.setItem('nekronium_auth_token', loginData.token);
+      if (data.success && data.user) {
+        currentUser = data.user;
+        if (data.token) {
+          localStorage.setItem('nekronium_auth_token', data.token);
         }
-        localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.uid);
-      } else {
-        currentUser = {
-          uid: data.user?.uid || 999,
-          username: username,
-          role: 'user',
-          balance: 0,
-          hwid: null,
-          subscription: null
-        };
         localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
         localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.uid);
       }
@@ -605,7 +651,14 @@ async function handleAuthSubmit(event) {
   }
 }
 
-function logoutUser() {
+async function logoutUser() {
+  const token = localStorage.getItem('nekronium_auth_token');
+  if (token) {
+    fetch(`${API_BASE}/api/logout`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).catch(() => {});
+  }
   currentUser = null;
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   localStorage.removeItem('nekronium_current_user_data');
@@ -691,6 +744,10 @@ function renderSubscriptionCard() {
   const expiresAt = document.getElementById('subExpiresAt');
   const freezeState = document.getElementById('subFreezeState');
   const freezeBtn = document.getElementById('freezeToggleBtn');
+  const downloadBtn = document.getElementById('downloadLoaderBtn');
+
+  const loaderName = (appConfig && appConfig.system && appConfig.system.loaderName) || 'NekroniumLoader.exe';
+  const loaderVer = (appConfig && appConfig.system && appConfig.system.loaderVersion) || 'V3.4.1';
 
   if (!currentUser.subscription) {
     badge.className = 'badge badge-inactive';
@@ -701,6 +758,10 @@ function renderSubscriptionCard() {
     freezeState.textContent = 'Не активна';
     freezeBtn.disabled = true;
     freezeBtn.innerHTML = '❄️ Заморозить подписку';
+    if (downloadBtn) {
+      downloadBtn.className = 'btn btn-secondary btn-lg';
+      downloadBtn.innerHTML = '🔒 Скачивание доступно при активной подписке';
+    }
     return;
   }
 
@@ -708,6 +769,11 @@ function renderSubscriptionCard() {
   const now = Date.now();
 
   prodName.textContent = `${sub.productName} (${sub.tierLabel || 'Тариф'})`;
+
+  if (downloadBtn) {
+    downloadBtn.className = 'btn btn-primary btn-lg btn-glow';
+    downloadBtn.innerHTML = `📥 Скачать ${escapeHtml(loaderName)} (${escapeHtml(loaderVer)})`;
+  }
 
   if (sub.isLifetime) {
     badge.className = 'badge badge-success';
@@ -730,6 +796,10 @@ function renderSubscriptionCard() {
     freezeBtn.disabled = false;
     freezeBtn.className = 'btn btn-primary';
     freezeBtn.innerHTML = '☀️ Разморозить подписку';
+    if (downloadBtn) {
+      downloadBtn.className = 'btn btn-secondary btn-lg';
+      downloadBtn.innerHTML = '❄️ Подписка заморожена (разморозьте для скачивания)';
+    }
   } else if (sub.expiresAt > now) {
     badge.className = 'badge badge-success';
     badge.textContent = 'АКТИВНА';
@@ -749,6 +819,10 @@ function renderSubscriptionCard() {
     freezeBtn.disabled = true;
     freezeBtn.className = 'btn btn-warning';
     freezeBtn.innerHTML = '❄️ Заморозить подписку';
+    if (downloadBtn) {
+      downloadBtn.className = 'btn btn-secondary btn-lg';
+      downloadBtn.innerHTML = '🔒 Срок подписки истек (продлите в магазине)';
+    }
   }
 }
 
@@ -764,8 +838,8 @@ async function toggleSubscriptionFreeze() {
   try {
     const res = await fetch(`${API_BASE}/api/user/freeze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: currentUser.uid })
+      headers: getAuthHeaders(),
+      body: JSON.stringify({})
     });
     const data = await res.json().catch(() => ({}));
 
@@ -784,33 +858,37 @@ async function toggleSubscriptionFreeze() {
   }
 }
 
-function downloadLoader() {
+async function downloadLoader() {
   if (!currentUser) {
     openAuthModal('login');
     return;
   }
 
-  if (!currentUser.subscription || (!currentUser.subscription.isLifetime && currentUser.subscription.expiresAt <= Date.now())) {
-    showToast('Для скачивания требуется активная лицензия или подписка!', 'error');
-    return;
-  }
+  showToast('Проверка подписки на сервере...', 'info');
 
-  if (currentUser.subscription.isFrozen) {
-    showToast('Ваша подписка заморожена. Разморозьте её перед запуском софта.', 'warning');
-    return;
-  }
+  try {
+    const res = await fetch(`${API_BASE}/api/download`, {
+      headers: getAuthHeaders()
+    });
 
-  const downloadUrl = 'https://drive.usercontent.google.com/download?id=1PDbILvvDKW3Dlquzmn8Sko3fYOIzggFI&export=download&authuser=0';
-  
-  showToast('Загрузка NekroniumLoader V1.4 началась!', 'success');
-  
-  // Открываем прямую загрузку
-  const a = document.createElement('a');
-  a.href = downloadUrl;
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success || !data.downloadUrl) {
+      showToast(data.error || 'Для скачивания требуется активная подписка на софт!', 'error');
+      return;
+    }
+
+    showToast('Подписка подтверждена! Загрузка началась...', 'success');
+
+    const a = document.createElement('a');
+    a.href = data.downloadUrl;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    showToast('Ошибка соединения с сервером загрузок', 'error');
+  }
 }
 
 /* -------------------------------------------------------------
@@ -952,8 +1030,8 @@ async function processTopUp() {
   const amountInput = document.getElementById('topUpAmountInput');
   const amount = Number(amountInput.value);
 
-  if (isNaN(amount) || amount < 10) {
-    showToast('Минимальная сумма пополнения — 10 ₽', 'error');
+  if (!Number.isFinite(amount) || isNaN(amount) || amount < 10 || amount > 50000) {
+    showToast('Сумма пополнения должна быть от 10 до 50 000 ₽', 'error');
     return;
   }
 
@@ -966,40 +1044,30 @@ async function processTopUp() {
 
   try {
     const relativePath = (selectedTopUpProvider === 'cryptobot') ? '/api/cryptobot/create' : '/api/lava/create';
-    let res = null;
-    let data = null;
 
-    const requestPayload = JSON.stringify({
-      uid: currentUser.uid,
-      username: currentUser.username,
-      amount: amount,
-      currency: selectedTopUpCurrency,
-      promoCode: appliedTopUpPromo ? appliedTopUpPromo.code : null
+    const res = await fetch(`${API_BASE}${relativePath}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        amount: Math.round(amount * 100) / 100,
+        currency: 'RUB',
+        promoCode: appliedTopUpPromo ? appliedTopUpPromo.code : null
+      })
     });
-
-    // Попытка через основной эндпоинт, при ошибке соединения — автоматический фоллбэк
-    try {
-      res = await fetch(`${API_BASE}${relativePath}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: requestPayload
-      });
-      data = await res.json().catch(() => ({}));
-    } catch (e1) {
-      if (API_BASE !== API_FALLBACK) {
-        res = await fetch(`${API_FALLBACK}${relativePath}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: requestPayload
-        });
-        data = await res.json().catch(() => ({}));
-      } else {
-        throw e1;
-      }
-    }
+    const data = await res.json().catch(() => ({}));
 
     if (!res || !res.ok || !data || !data.success || !data.paymentUrl) {
       showToast((data && data.error) ? data.error : 'Ошибка при создании счета на оплату', 'error');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+      return;
+    }
+
+    // Проверяем валидность протокола ссылки
+    if (!data.paymentUrl.startsWith('https://') && !data.paymentUrl.startsWith('http://')) {
+      showToast('Получена некорректная ссылка на оплату от сервера', 'error');
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
@@ -1046,7 +1114,6 @@ async function processTopUp() {
     let pollAttempts = 0;
     const pollInterval = setInterval(async () => {
       pollAttempts++;
-      await fetch(`${API_BASE}/api/lava/sync`).catch(() => fetch(`${API_FALLBACK}/api/lava/sync`)).catch(() => {});
       await syncWithServer();
       if (currentUser && currentUser.balance > initialBal) {
         clearInterval(pollInterval);
@@ -1100,8 +1167,8 @@ async function activateLicenseKey() {
   try {
     const res = await fetch(`${API_BASE}/api/license/activate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: currentUser.uid, key })
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ key })
     });
     const data = await res.json().catch(() => ({}));
 
@@ -1115,9 +1182,9 @@ async function activateLicenseKey() {
       return;
     }
 
-    // Success! Update local user subscription
+    // Success! Update local user subscription from server data
     currentUser.subscription = {
-      productId: 'nekronium-sif',
+      productId: data.productId || 'nekronium-sif',
       productName: data.productName,
       tierLabel: data.tierLabel,
       isLifetime: Boolean(data.isLifetime),
@@ -1130,10 +1197,11 @@ async function activateLicenseKey() {
     updateNavAuth();
     renderSubscriptionCard();
     input.value = '';
+    await syncWithServer();
 
     if (resultBox) {
       resultBox.className = 'key-result-msg success';
-      resultBox.innerHTML = `🎉 Ключ успешно активирован! Доступ к продукту <strong>${data.productName} (${data.tierLabel})</strong> открыт!`;
+      resultBox.innerHTML = `🎉 Ключ успешно активирован! Доступ к продукту <strong>${escapeHtml(data.productName)} (${escapeHtml(data.tierLabel)})</strong> открыт!`;
       resultBox.style.display = 'flex';
     }
 
@@ -1249,11 +1317,11 @@ function renderAdminTable() {
     return `
       <tr>
         <td><strong>#${u.uid}</strong></td>
-        <td><strong>${u.username}</strong></td>
+        <td><strong>${escapeHtml(u.username)}</strong></td>
         <td>${ipDisplay}</td>
-        <td><span class="badge badge-role ${roleInfo.badgeClass}">${roleInfo.label}</span></td>
-        <td style="color: var(--accent-emerald); font-weight: 700;">${u.balance.toFixed(2)} ₽</td>
-        <td>${u.subscription ? u.subscription.productName : '—'}</td>
+        <td><span class="badge badge-role ${roleInfo.badgeClass}">${escapeHtml(roleInfo.label)}</span></td>
+        <td style="color: var(--accent-emerald); font-weight: 700;">${Number(u.balance || 0).toFixed(2)} ₽</td>
+        <td>${u.subscription ? escapeHtml(u.subscription.productName) : '—'}</td>
         <td style="font-family: var(--font-mono); font-size: 0.85rem;">${timeLeftText}</td>
         <td>${subStatusText}</td>
         <td>
@@ -1311,8 +1379,8 @@ async function adminToggleUserBan(uid) {
   }
 }
 
-// Admin: Toggle Freeze for any user
-function adminToggleUserFreeze(uid) {
+// Admin: Toggle Freeze for any user via server API
+async function adminToggleUserFreeze(uid) {
   const target = appUsers.find(u => u.uid === uid);
   if (!target || !target.subscription) {
     showToast('У пользователя нет подписки для заморозки', 'error');
@@ -1326,31 +1394,41 @@ function adminToggleUserFreeze(uid) {
   }
 
   const now = Date.now();
-  if (!sub.isFrozen) {
-    // Freeze
-    const remaining = Math.max(0, Math.floor((sub.expiresAt - now) / 1000));
-    sub.remainingSeconds = remaining;
-    sub.isFrozen = true;
-    sub.frozenAt = now;
-    showToast(`Подписка пользователя #${target.uid} заморожена!`, 'info');
-  } else {
-    // Unfreeze
-    sub.expiresAt = now + (sub.remainingSeconds * 1000);
-    sub.isFrozen = false;
-    sub.unfrozenAt = now;
-    showToast(`Подписка пользователя #${target.uid} разморожена!`, 'success');
+  if (!sub.isFrozen && sub.expiresAt <= now) {
+    showToast('Нельзя заморозить истекшую подписку!', 'error');
+    return;
   }
 
-  saveUsersToStorage(target);
-  renderAdminTable();
-  if (currentUser && currentUser.uid === target.uid) {
-    currentUser = target;
-    updateDashboardView();
+  try {
+    const res = await fetch(`${API_BASE}/api/user/freeze`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ uid })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      sub.isFrozen = data.isFrozen;
+      sub.remainingSeconds = data.remainingSeconds;
+      sub.expiresAt = data.expiresAt;
+      renderAdminTable();
+      if (currentUser && currentUser.uid === target.uid) {
+        currentUser.subscription.isFrozen = data.isFrozen;
+        currentUser.subscription.remainingSeconds = data.remainingSeconds;
+        currentUser.subscription.expiresAt = data.expiresAt;
+        updateDashboardView();
+      }
+      showToast(data.isFrozen ? `Подписка #${target.uid} заморожена!` : `Подписка #${target.uid} разморожена!`, 'success');
+    } else {
+      showToast(data.error || 'Ошибка при изменении статуса заморозки', 'error');
+    }
+  } catch (e) {
+    showToast('Ошибка связи с сервером', 'error');
   }
 }
 
 // Admin: Wipe/Delete Subscription for any user
-function adminWipeUserSubscription(uid) {
+async function adminWipeUserSubscription(uid) {
   const target = appUsers.find(u => u.uid === uid);
   if (!target || !target.subscription) {
     showToast('У пользователя нет активной подписки', 'info');
@@ -1361,16 +1439,27 @@ function adminWipeUserSubscription(uid) {
     return;
   }
 
-  target.subscription = null;
-  saveUsersToStorage(target);
-  renderAdminTable();
-
-  if (currentUser && currentUser.uid === target.uid) {
-    currentUser = target;
-    updateDashboardView();
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/user/wipe-sub`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ uid: target.uid })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      target.subscription = null;
+      renderAdminTable();
+      if (currentUser && currentUser.uid === target.uid) {
+        currentUser.subscription = null;
+        updateDashboardView();
+      }
+      showToast(`Подписка пользователя #${target.uid} полностью снесена!`, 'success');
+    } else {
+      showToast(data.error || 'Ошибка при снятии подписки', 'error');
+    }
+  } catch (e) {
+    showToast('Ошибка соединения с сервером', 'error');
   }
-
-  showToast(`Подписка пользователя #${target.uid} полностью снесена!`, 'success');
 }
 
 // Admin User Edit Modal
@@ -1404,16 +1493,16 @@ function closeAdminUserModal() {
   document.getElementById('adminUserModal').classList.remove('open');
 }
 
-function adminModalToggleFreeze() {
+async function adminModalToggleFreeze() {
   const uid = Number(document.getElementById('modalTargetUserId').value);
-  adminToggleUserFreeze(uid);
-  openAdminUserEdit(uid); // Refresh modal view
+  await adminToggleUserFreeze(uid);
+  openAdminUserEdit(uid); // Refresh modal view after server confirms
 }
 
-function adminModalWipeSub() {
+async function adminModalWipeSub() {
   const uid = Number(document.getElementById('modalTargetUserId').value);
-  adminWipeUserSubscription(uid);
-  closeAdminUserModal();
+  await adminWipeUserSubscription(uid);
+  openAdminUserEdit(uid); // Refresh modal view after server confirms
 }
 
 function quickAddBalance(amount) {
@@ -1426,7 +1515,7 @@ function quickAddDays(days) {
   input.value = Number(input.value || 0) + days;
 }
 
-function saveAdminUserData() {
+async function saveAdminUserData() {
   const uid = Number(document.getElementById('modalTargetUserId').value);
   const target = appUsers.find(u => u.uid === uid);
   if (!target) return;
@@ -1434,42 +1523,36 @@ function saveAdminUserData() {
   const newBalance = parseFloat(document.getElementById('modalUserBalance').value);
   const addDays = parseInt(document.getElementById('modalUserSubDays').value, 10);
 
+  const payload = { uid };
   if (!isNaN(newBalance) && newBalance >= 0) {
-    target.balance = newBalance;
+    payload.setBalance = newBalance;
   }
-
   if (!isNaN(addDays) && addDays > 0) {
-    const durationMs = addDays * 24 * 3600 * 1000;
-    const now = Date.now();
+    payload.addDays = addDays;
+  }
 
-    if (target.subscription && target.subscription.expiresAt > now && !target.subscription.isLifetime) {
-      target.subscription.expiresAt += durationMs;
-      target.subscription.remainingSeconds += addDays * 24 * 3600;
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/user/adjust`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      if (payload.setBalance !== undefined) target.balance = payload.setBalance;
+      await fetchAdminUsers();
+      renderAdminTable();
+      closeAdminUserModal();
+      showToast(`Пользователь #${uid} успешно обновлен!`, 'success');
+      if (currentUser && currentUser.uid === target.uid) {
+        await syncWithServer();
+      }
     } else {
-      target.subscription = {
-        productId: 'nekronium-sif',
-        productName: 'Nekronium SIF',
-        tierLabel: `${addDays} дн.`,
-        isLifetime: false,
-        expiresAt: now + durationMs,
-        isFrozen: false,
-        remainingSeconds: addDays * 24 * 3600
-      };
+      showToast(data.error || 'Ошибка при сохранении пользователя', 'error');
     }
+  } catch (e) {
+    showToast('Ошибка соединения с сервером', 'error');
   }
-
-  saveUsersToStorage(target);
-  closeAdminUserModal();
-  renderAdminTable();
-
-  // If modifying self
-  if (currentUser && currentUser.uid === target.uid) {
-    currentUser = target;
-    updateNavAuth();
-    updateDashboardView();
-  }
-
-  showToast(`Данные пользователя #${target.uid} обновлены!`, 'success');
 }
 
 /* -------------------------------------------------------------
@@ -1488,15 +1571,15 @@ function renderConfigEditor() {
   if (!container || !appConfig || !appConfig.products) return;
 
   container.innerHTML = appConfig.products.map((prod, prodIdx) => {
-    const tiersHtml = prod.tiers.map((tier, tierIdx) => {
+    const tiersHtml = (prod.tiers || []).map((tier, tierIdx) => {
       const hasDiscount = Boolean(tier.hasDiscount);
       const oldPrice = tier.oldPrice || '';
 
       return `
         <div class="tier-edit-box">
-          <label style="font-weight: 700; color: #fff;">${tier.label} (${tier.key}):</label>
+          <label style="font-weight: 700; color: #fff;">${escapeHtml(tier.label)} (${escapeHtml(tier.key)}):</label>
           <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-            <input type="number" min="0" id="cfg_price_${prodIdx}_${tierIdx}" value="${tier.price}" placeholder="Цена" style="width: 100%;">
+            <input type="number" min="1" id="cfg_price_${prodIdx}_${tierIdx}" value="${Number(tier.price)}" placeholder="Цена" style="width: 100%;">
             <span style="font-weight: 700; color: var(--accent-emerald);">₽</span>
           </div>
 
@@ -1507,7 +1590,7 @@ function renderConfigEditor() {
             </label>
             <div id="cfg_oldprice_wrap_${prodIdx}_${tierIdx}" style="display: ${hasDiscount ? 'flex' : 'none'}; align-items: center; gap: 6px;">
               <span style="font-size: 0.74rem; color: var(--text-muted);">Старая цена:</span>
-              <input type="number" min="0" id="cfg_oldprice_${prodIdx}_${tierIdx}" value="${oldPrice}" placeholder="1990" style="width: 90px; padding: 4px 6px; font-size: 0.8rem;">
+              <input type="number" min="1" id="cfg_oldprice_${prodIdx}_${tierIdx}" value="${oldPrice ? Number(oldPrice) : ''}" placeholder="1990" style="width: 90px; padding: 4px 6px; font-size: 0.8rem;">
               <span style="font-size: 0.78rem; color: var(--text-muted);">₽</span>
             </div>
           </div>
@@ -1519,20 +1602,20 @@ function renderConfigEditor() {
       <div class="config-prod-card">
         <div class="config-prod-header">
           <div>
-            <h4>${prod.name} <code>(${prod.id})</code></h4>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Игра: ${prod.game}</div>
+            <h4>${escapeHtml(prod.name)} <code>(${escapeHtml(prod.id)})</code></h4>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Игра: ${escapeHtml(prod.game)}</div>
           </div>
-          <span class="badge badge-success">${prod.status}</span>
+          <span class="badge badge-success">${escapeHtml(prod.status)}</span>
         </div>
 
         <div class="config-inputs-row" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
           <div>
             <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Название товара:</label>
-            <input type="text" id="cfg_name_${prodIdx}" value="${prod.name}">
+            <input type="text" id="cfg_name_${prodIdx}" value="${escapeHtml(prod.name)}">
           </div>
           <div>
             <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Игра / Категория:</label>
-            <input type="text" id="cfg_game_${prodIdx}" value="${prod.game}">
+            <input type="text" id="cfg_game_${prodIdx}" value="${escapeHtml(prod.game)}">
           </div>
           <div>
             <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Статус чита:</label>
@@ -1546,7 +1629,7 @@ function renderConfigEditor() {
           </div>
           <div>
             <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Дата / Текст обновления:</label>
-            <input type="text" id="cfg_updated_${prodIdx}" value="${prod.lastUpdated || 'Сегодня'}" placeholder="Например: Сегодня или 03.11.2026">
+            <input type="text" id="cfg_updated_${prodIdx}" value="${escapeHtml(prod.lastUpdated || 'Сегодня')}" placeholder="Например: Сегодня или 03.11.2026">
           </div>
         </div>
 
@@ -1559,47 +1642,64 @@ function renderConfigEditor() {
   }).join('');
 }
 
-function saveAdminPriceConfig() {
+async function saveAdminPriceConfig() {
   if (!appConfig || !appConfig.products) return;
 
-  appConfig.products.forEach((prod, prodIdx) => {
+  for (let prodIdx = 0; prodIdx < appConfig.products.length; prodIdx++) {
+    const prod = appConfig.products[prodIdx];
     const nameInput = document.getElementById(`cfg_name_${prodIdx}`);
     const gameInput = document.getElementById(`cfg_game_${prodIdx}`);
     const statusSelect = document.getElementById(`cfg_status_${prodIdx}`);
     const updatedInput = document.getElementById(`cfg_updated_${prodIdx}`);
 
-    if (nameInput) prod.name = nameInput.value.trim();
-    if (gameInput) prod.game = gameInput.value.trim();
+    const newName = nameInput ? nameInput.value.trim() : '';
+    if (!newName) {
+      showToast(`Название товара #${prod.id} не может быть пустым!`, 'error');
+      return;
+    }
+    prod.name = newName;
+    if (gameInput) prod.game = gameInput.value.trim() || 'Game';
     if (statusSelect) prod.status = statusSelect.value;
     if (updatedInput) prod.lastUpdated = updatedInput.value.trim() || 'Сегодня';
 
-    prod.tiers.forEach((tier, tierIdx) => {
+    for (let tierIdx = 0; tierIdx < (prod.tiers || []).length; tierIdx++) {
+      const tier = prod.tiers[tierIdx];
       const priceInput = document.getElementById(`cfg_price_${prodIdx}_${tierIdx}`);
       const discountCb = document.getElementById(`cfg_discount_${prodIdx}_${tierIdx}`);
       const oldPriceInput = document.getElementById(`cfg_oldprice_${prodIdx}_${tierIdx}`);
 
       if (priceInput) {
         const val = parseFloat(priceInput.value);
-        if (!isNaN(val) && val >= 0) {
-          tier.price = val;
+        if (isNaN(val) || val <= 0) {
+          showToast(`Цена тарифа "${tier.label}" у товара "${prod.name}" должна быть больше 0!`, 'error');
+          return;
         }
+        tier.price = val;
       }
 
       if (discountCb) {
         tier.hasDiscount = discountCb.checked;
         if (tier.hasDiscount && oldPriceInput) {
-          tier.oldPrice = parseFloat(oldPriceInput.value) || Math.round(tier.price * 1.35);
+          const oldVal = parseFloat(oldPriceInput.value);
+          if (isNaN(oldVal) || oldVal <= tier.price) {
+            showToast(`Старая цена тарифа "${tier.label}" должна быть строго больше текущей цены (${tier.price} ₽)!`, 'error');
+            return;
+          }
+          tier.oldPrice = oldVal;
         } else {
           tier.oldPrice = 0;
         }
       }
-    });
-  });
+    }
+  }
 
-  saveConfigToStorage();
-  renderProducts(); // Refresh storefront catalog in real-time
-  renderConfigEditor(); // Refresh editor
-  showToast('Прайсы, статусы и скидки успешно сохранены и обновлены!', 'success');
+  const ok = await saveConfigToStorage();
+  if (ok) {
+    renderProducts();
+    renderConfigEditor();
+    renderAnnouncementBanner();
+    showToast('Прайсы, статусы и скидки успешно сохранены и обновлены!', 'success');
+  }
 }
 
 function resetConfigToDefault() {
@@ -1627,19 +1727,27 @@ function exportConfigJson() {
   showToast('Файл nekronium_config.json скачан!', 'success');
 }
 
-function importConfigJsonPrompt() {
+async function importConfigJsonPrompt() {
   const raw = prompt('Вставьте JSON конфигурацию (или отредактируйте config.js):');
   if (!raw) return;
   try {
     const parsed = JSON.parse(raw);
-    if (parsed.products && Array.isArray(parsed.products)) {
+    if (parsed.products && Array.isArray(parsed.products) && parsed.products.length > 0) {
+      const isValid = parsed.products.every(p => p.id && p.name && Array.isArray(p.tiers) && p.tiers.length > 0 && p.tiers.every(t => t.key && typeof t.price === 'number'));
+      if (!isValid) {
+        showToast('Ошибка: товары или тарифы имеют некорректную структуру', 'error');
+        return;
+      }
       appConfig = parsed;
-      saveConfigToStorage();
-      renderProducts();
-      renderConfigEditor();
-      showToast('Конфигурация успешно импортирована!', 'success');
+      const ok = await saveConfigToStorage();
+      if (ok) {
+        renderProducts();
+        renderConfigEditor();
+        renderAnnouncementBanner();
+        showToast('Конфигурация успешно импортирована и сохранена!', 'success');
+      }
     } else {
-      showToast('Ошибка: неверный формат конфигурации (нет products)', 'error');
+      showToast('Ошибка: неверный формат конфигурации (нет списка товаров)', 'error');
     }
   } catch (err) {
     showToast('Ошибка парсинга JSON: ' + err.message, 'error');
@@ -1666,14 +1774,15 @@ async function adminCreatePromo() {
 
   const code = (codeInput?.value || '').trim().toUpperCase();
   const bonusPercent = Number(bonusInput?.value);
-  const uses = Number(usesInput?.value) || 9999;
+  const rawUses = usesInput?.value?.trim();
+  const uses = rawUses ? Math.max(1, Math.min(100000, Number(rawUses) || 1)) : 99999;
 
   if (!code) {
     showToast('Введите название промокода', 'error');
     return;
   }
-  if (isNaN(bonusPercent) || bonusPercent <= 0) {
-    showToast('Введите корректный процент бонуса (например: 20)', 'error');
+  if (isNaN(bonusPercent) || bonusPercent <= 0 || bonusPercent > 500) {
+    showToast('Процент бонуса должен быть от 1% до 500%', 'error');
     return;
   }
 
@@ -1718,12 +1827,12 @@ async function loadAdminPromos() {
         const createdDate = p.created_at ? new Date(p.created_at).toLocaleDateString('ru-RU') : '—';
         return `
           <tr>
-            <td><span class="code-pill" title="Кликните чтобы скопировать" onclick="copyTextToClipboard('${p.code}')">${p.code} 📋</span></td>
-            <td><strong style="color: var(--accent-emerald);">+${p.bonus_percent}%</strong></td>
-            <td>${p.uses_left} раз(а)</td>
+            <td><span class="code-pill" title="Кликните чтобы скопировать" onclick="copyTextToClipboard('${escapeHtml(p.code)}')">${escapeHtml(p.code)} 📋</span></td>
+            <td><strong style="color: var(--accent-emerald);">+${Number(p.bonus_percent)}%</strong></td>
+            <td>${Number(p.uses_left)} раз(а)</td>
             <td style="color: var(--text-muted); font-size: 0.85rem;">${createdDate}</td>
             <td>
-              <button class="btn btn-danger btn-sm" onclick="adminDeletePromo('${p.code}')">🗑️ Удалить</button>
+              <button class="btn btn-danger btn-sm" onclick="adminDeletePromo('${escapeHtml(p.code)}')">🗑️ Удалить</button>
             </td>
           </tr>
         `;
@@ -1745,9 +1854,12 @@ async function adminDeletePromo(code) {
       headers: getAuthHeaders(),
       body: JSON.stringify({ code })
     });
-    if (res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
       showToast(`Промокод ${code} удален`, 'info');
       loadAdminPromos();
+    } else {
+      showToast(data.error || 'Ошибка при удалении промокода', 'error');
     }
   } catch (e) {
     showToast('Ошибка при удалении промокода', 'error');
@@ -1757,13 +1869,31 @@ async function adminDeletePromo(code) {
 /* -------------------------------------------------------------
    ADMIN: LICENSE KEYS GENERATION & MANAGEMENT
 ------------------------------------------------------------- */
+function updateKeyDurationSelect() {
+  const prodSelect = document.getElementById('adminKeyProductSelect');
+  const durSelect = document.getElementById('adminKeyDurationSelect');
+  if (!prodSelect || !durSelect || !appConfig || !appConfig.products) return;
+
+  const product = appConfig.products.find(p => p.id === prodSelect.value) || appConfig.products[0];
+  if (!product || !product.tiers) return;
+
+  durSelect.innerHTML = product.tiers.map(t => {
+    const isLife = t.key === 'lifetime' || Boolean(t.isLifetime);
+    const days = isLife ? 36500 : (t.days || 30);
+    return `<option value="${escapeHtml(t.key)}" data-days="${days}" data-lifetime="${isLife}">${escapeHtml(t.label)}</option>`;
+  }).join('');
+}
+
 function populateAdminKeyProducts() {
   const select = document.getElementById('adminKeyProductSelect');
   if (!select || !appConfig || !appConfig.products) return;
 
   select.innerHTML = appConfig.products.map(p => `
-    <option value="${p.id}" data-name="${p.name}">${p.name} (${p.game})</option>
+    <option value="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${escapeHtml(p.game)})</option>
   `).join('');
+
+  select.onchange = updateKeyDurationSelect;
+  updateKeyDurationSelect();
 }
 
 async function adminGenerateKeys() {
@@ -1775,10 +1905,10 @@ async function adminGenerateKeys() {
   const selectedOpt = prodSelect?.options[prodSelect.selectedIndex];
   const productName = selectedOpt?.getAttribute('data-name') || 'Nekronium SIF';
 
-  const durationVal = durSelect?.value || '30';
-  const isLifetime = (durationVal === 'lifetime');
-  const days = isLifetime ? 36500 : Number(durationVal);
-  const tierLabel = isLifetime ? 'Навсегда (Lifetime)' : `${days} дней`;
+  const selectedDurOpt = durSelect?.options[durSelect?.selectedIndex];
+  const isLifetime = selectedDurOpt?.getAttribute('data-lifetime') === 'true' || durSelect?.value === 'lifetime';
+  const days = isLifetime ? 36500 : Number(selectedDurOpt?.getAttribute('data-days') || durSelect?.value || 30);
+  const tierLabel = selectedDurOpt?.textContent?.trim() || (isLifetime ? 'Навсегда (Lifetime)' : `${days} дней`);
   const count = Math.min(50, Math.max(1, Number(countInput?.value) || 1));
 
   try {
@@ -1830,7 +1960,7 @@ async function loadAdminKeys() {
 
         if (isUsed) {
           const activatedAtStr = k.used_at ? new Date(k.used_at).toLocaleString('ru-RU') : '—';
-          const whoActivated = k.used_by_username ? `${k.used_by_username} (UID #${k.used_by_uid})` : `UID #${k.used_by_uid || '?'}`;
+          const whoActivated = k.used_by_username ? `${escapeHtml(k.used_by_username)} (UID #${k.used_by_uid})` : `UID #${k.used_by_uid || '?'}`;
           statusHtml = `
             <div>
               <span class="badge badge-inactive">ИСПОЛЬЗОВАН</span>
@@ -1858,16 +1988,16 @@ async function loadAdminKeys() {
         return `
           <tr>
             <td>
-              <span class="code-pill" title="Кликните чтобы скопировать" onclick="copyTextToClipboard('${k.key}')">
-                ${k.key} 📋
+              <span class="code-pill" title="Кликните чтобы скопировать" onclick="copyTextToClipboard('${escapeHtml(k.key)}')">
+                ${escapeHtml(k.key)} 📋
               </span>
             </td>
-            <td><strong>${k.product_name}</strong></td>
-            <td>${k.tier_label}</td>
+            <td><strong>${escapeHtml(k.product_name)}</strong></td>
+            <td>${escapeHtml(k.tier_label)}</td>
             <td>${statusHtml}</td>
             <td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td>
             <td>
-              <button class="btn btn-danger btn-sm" onclick="adminDeleteKey('${k.key}')" title="Удалить ключ">🗑️ Удалить</button>
+              <button class="btn btn-danger btn-sm" onclick="adminDeleteKey('${escapeHtml(k.key)}')" title="Удалить ключ">🗑️ Удалить</button>
             </td>
           </tr>
         `;
@@ -1918,13 +2048,13 @@ function renderAnnouncementBanner() {
   const bannerText = document.getElementById('announcementText');
   if (!banner || !bannerText) return;
 
-  if (sessionStorage.getItem('dismiss_announcement_banner') === '1') {
-    banner.style.display = 'none';
-    return;
-  }
-
   const ann = (appConfig && appConfig.announcement) || null;
   if (ann && ann.enabled && ann.text && ann.text.trim()) {
+    const textHash = btoa(encodeURIComponent(ann.text.trim()));
+    if (sessionStorage.getItem('dismissed_announcement_hash') === textHash) {
+      banner.style.display = 'none';
+      return;
+    }
     bannerText.textContent = ann.text.trim();
     banner.style.display = 'block';
   } else {
@@ -1935,20 +2065,26 @@ function renderAnnouncementBanner() {
 function closeAnnouncementBanner() {
   const banner = document.getElementById('announcementBanner');
   if (banner) banner.style.display = 'none';
-  sessionStorage.setItem('dismiss_announcement_banner', '1');
+  const ann = (appConfig && appConfig.announcement) || null;
+  if (ann && ann.text) {
+    const textHash = btoa(encodeURIComponent(ann.text.trim()));
+    sessionStorage.setItem('dismissed_announcement_hash', textHash);
+  }
 }
 
-function saveAdminBannerConfig() {
+async function saveAdminBannerConfig() {
   const enabled = document.getElementById('adminBannerEnabled')?.checked || false;
   const text = document.getElementById('adminBannerText')?.value?.trim() || '';
 
   if (!appConfig) appConfig = {};
   appConfig.announcement = { enabled, text };
 
-  sessionStorage.removeItem('dismiss_announcement_banner'); // Reset dismissal when admin updates banner
-  saveConfigToStorage();
-  renderAnnouncementBanner();
-  showToast('Настройки верхнего баннера успешно сохранены и применены!', 'success');
+  sessionStorage.removeItem('dismissed_announcement_hash');
+  const ok = await saveConfigToStorage();
+  if (ok) {
+    renderAnnouncementBanner();
+    showToast('Настройки верхнего баннера успешно сохранены и применены!', 'success');
+  }
 }
 
 /* -------------------------------------------------------------
@@ -1960,6 +2096,20 @@ function startGlobalTimer() {
       renderSubscriptionCard();
     }
   }, 1000);
+
+  // Периодическая фоновая синхронизация с сервером каждые 60 секунд
+  setInterval(() => {
+    if (currentUser) {
+      syncWithServer();
+    }
+  }, 60000);
+
+  // Синхронизация при возвращении пользователя на вкладку
+  window.addEventListener('focus', () => {
+    if (currentUser) {
+      syncWithServer();
+    }
+  });
 }
 
 function formatRemainingTime(totalSeconds) {
@@ -1973,13 +2123,21 @@ function formatRemainingTime(totalSeconds) {
   return `${pad(days)}д ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
+// Защита от XSS: вывод сообщений через textContent
 function showToast(message, type = 'info') {
   const container = document.getElementById('toastContainer');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
 
-  const icon = type === 'success' ? '✓' : type === 'error' ? '⚠' : 'ℹ';
-  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  const iconSpan = document.createElement('span');
+  iconSpan.textContent = type === 'success' ? '✓' : type === 'error' ? '⚠' : 'ℹ';
+
+  const textSpan = document.createElement('span');
+  textSpan.textContent = String(message || '');
+
+  toast.appendChild(iconSpan);
+  toast.appendChild(textSpan);
   container.appendChild(toast);
 
   setTimeout(() => {
