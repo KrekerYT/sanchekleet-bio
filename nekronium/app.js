@@ -819,9 +819,9 @@ function downloadLoader() {
 }
 
 /* -------------------------------------------------------------
-   Balance Top-Up Modal (Lava & CryptoBot + Promo Bonus)
+   Balance Top-Up Modal (CryptoBot & Cards)
 ------------------------------------------------------------- */
-let selectedTopUpProvider = 'lava';
+let selectedTopUpProvider = 'cryptobot';
 let selectedTopUpCurrency = 'RUB';
 let appliedTopUpPromo = null;
 
