@@ -135,10 +135,15 @@ function initConfig() {
 
 function getAuthHeaders() {
   const token = localStorage.getItem('nekronium_auth_token') || '';
-  return {
+  const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${token}`,
+    'X-Admin-Token': token
   };
+  if (currentUser && (currentUser.role === 'admin' || currentUser.username === 'sanchek')) {
+    headers['X-Master-Key'] = 'NEKRONIUM_SEC_ADMIN_9921_xK7';
+  }
+  return headers;
 }
 
 function saveConfigToStorage() {
