@@ -133,12 +133,20 @@ function initConfig() {
   }
 }
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('nekronium_auth_token') || '';
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+}
+
 function saveConfigToStorage() {
   localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(appConfig));
   if (currentUser && currentUser.role === 'admin') {
     fetch(`${API_BASE}/api/config`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ config: appConfig })
     }).catch(() => {});
   }
@@ -148,7 +156,6 @@ function saveConfigToStorage() {
    Storage & Seed Data
 ------------------------------------------------------------- */
 function initStorage() {
-  // Clear any legacy test data from older versions
   const legacyKeys = [
     'nekronium_config_db',
     'nexus_users_db', 'nexus_v2_users_db', 'nexus_v3_users_db',
@@ -158,30 +165,14 @@ function initStorage() {
   legacyKeys.forEach(k => localStorage.removeItem(k));
 
   const storedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
-  if (!storedUsers) {
-    // Default admin: sanchek / sanchek (UID #1, 0 balance)
-    const defaultUsers = [
-      {
-        uid: 1,
-        username: 'sanchek',
-        password: 'sanchek',
-        role: 'admin',
-        balance: 0,
-        licenseKey: 'NEKRONIUM-ADM1-0001-K8F2',
-        hwid: null,
-        lastHwidReset: null,
-        subscription: null
-      }
-    ];
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(defaultUsers));
-    localStorage.setItem(STORAGE_KEYS.NEXT_UID, '2');
-    appUsers = defaultUsers;
-  } else {
+  if (storedUsers) {
     try {
       appUsers = JSON.parse(storedUsers);
     } catch (e) {
       appUsers = [];
     }
+  } else {
+    appUsers = [];
   }
 }
 
@@ -189,34 +180,55 @@ function saveUsersToStorage(userToSave = null) {
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(appUsers));
   const target = userToSave || currentUser;
   if (target) {
-    fetch(`${API_BASE}/api/user/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(target)
-    }).catch(() => {});
+    if (currentUser && currentUser.uid === target.uid) {
+      localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
+    }
+    if (currentUser && currentUser.role === 'admin') {
+      fetch(`${API_BASE}/api/user/save`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(target)
+      }).catch(() => {});
+    }
   }
 }
 
-async function syncWithServer() {
+async function fetchAdminUsers() {
+  if (!currentUser || currentUser.role !== 'admin') return;
   try {
-    const res = await fetch(`${API_BASE}/api/users`);
+    const res = await fetch(`${API_BASE}/api/users`, {
+      headers: getAuthHeaders()
+    });
     if (res.ok) {
       const data = await res.json();
       if (data.users && Array.isArray(data.users)) {
         appUsers = data.users;
         localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(appUsers));
-        if (currentUser) {
-          const fresh = appUsers.find(u => u.uid === currentUser.uid);
-          if (fresh) currentUser = fresh;
-        }
-        updateNavAuth();
-        updateDashboardView();
-        if (document.getElementById('tab-admin')?.classList.contains('active')) {
-          renderAdminTable();
-        }
       }
     }
-  } catch (err) {}
+  } catch (e) {}
+}
+
+async function syncWithServer() {
+  if (currentUser && currentUser.uid) {
+    try {
+      const res = await fetch(`${API_BASE}/api/user/me?uid=${currentUser.uid}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          currentUser = Object.assign(currentUser, data.user);
+          localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
+          updateNavAuth();
+          updateDashboardView();
+        }
+      }
+    } catch (err) {}
+  }
+
+  if (currentUser && currentUser.role === 'admin' && document.getElementById('tab-admin')?.classList.contains('active')) {
+    await fetchAdminUsers();
+    renderAdminTable();
+  }
 
   // Sync global store config (prices, statuses, discounts) from server
   try {
@@ -236,11 +248,17 @@ async function syncWithServer() {
 }
 
 function checkSession() {
-  const sessionUid = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-  if (sessionUid) {
-    const found = appUsers.find(u => u.uid === Number(sessionUid));
-    if (found) {
-      currentUser = found;
+  const sessionData = localStorage.getItem('nekronium_current_user_data');
+  if (sessionData) {
+    try {
+      currentUser = JSON.parse(sessionData);
+    } catch (e) {
+      currentUser = null;
+    }
+  } else {
+    const sessionUid = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    if (sessionUid && appUsers.length > 0) {
+      currentUser = appUsers.find(u => u.uid === Number(sessionUid)) || null;
     }
   }
   updateNavAuth();
@@ -267,8 +285,10 @@ function switchTab(tabId) {
   if (navBtn) navBtn.classList.add('active');
 
   if (tabId === 'admin') {
-    renderAdminTable();
-    renderConfigEditor();
+    fetchAdminUsers().then(() => {
+      renderAdminTable();
+      renderConfigEditor();
+    });
   } else if (tabId === 'dashboard') {
     updateDashboardView();
   }
@@ -404,14 +424,15 @@ function selectTier(productId, tierKey) {
   renderProducts();
 }
 
-function purchaseProduct(productId) {
+async function purchaseProduct(productId) {
   if (!currentUser) {
     openAuthModal('login');
     showToast('Пожалуйста, авторизуйтесь для покупки товара', 'info');
     return;
   }
 
-  const product = appConfig.products.find(p => p.id === productId);
+  const productsList = (appConfig && appConfig.products) ? appConfig.products : FALLBACK_PRODUCTS;
+  const product = productsList.find(p => p.id === productId);
   if (!product) return;
 
   const selectedTierKey = selectedProductTiers[productId] || product.tiers[0].key;
@@ -424,47 +445,36 @@ function purchaseProduct(productId) {
     return;
   }
 
-  // Deduct balance
-  currentUser.balance -= cost;
+  try {
+    const isLifetime = tier.key === 'lifetime';
+    const res = await fetch(`${API_BASE}/api/purchase/buy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: currentUser.uid,
+        productId: product.id,
+        productName: product.name,
+        tierDays: tier.days,
+        isLifetime: isLifetime,
+        tierLabel: tier.label,
+        price: cost
+      })
+    });
+    const data = await res.json().catch(() => ({}));
 
-  // Add or extend subscription
-  const isLifetime = tier.key === 'lifetime';
-  const durationMs = tier.days * 24 * 3600 * 1000;
-  let newExpiresAt = Date.now() + durationMs;
-
-  if (currentUser.subscription && currentUser.subscription.expiresAt > Date.now() && !currentUser.subscription.isLifetime) {
-    newExpiresAt = currentUser.subscription.expiresAt + durationMs;
+    if (res.ok && data.success && data.user) {
+      currentUser = Object.assign(currentUser, data.user);
+      localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
+      updateNavAuth();
+      updateDashboardView();
+      showToast(`Успешно приобретено: "${product.name}" (${tier.label})!`, 'success');
+      switchTab('dashboard');
+    } else {
+      showToast(data.error || 'Ошибка при оформлении покупки', 'error');
+    }
+  } catch (e) {
+    showToast('Ошибка связи с сервером при покупке', 'error');
   }
-
-  currentUser.subscription = {
-    productId: product.id,
-    productName: product.name,
-    tierLabel: tier.label,
-    isLifetime: isLifetime,
-    expiresAt: newExpiresAt,
-    isFrozen: false,
-    remainingSeconds: Math.floor((newExpiresAt - Date.now()) / 1000)
-  };
-
-  saveUsersToStorage();
-  updateNavAuth();
-  updateDashboardView();
-  showToast(`Успешно приобретено: "${product.name}" (${tier.label})!`, 'success');
-  switchTab('dashboard');
-
-  // Telegram alert for purchase
-  fetch(`${API_BASE}/api/purchase/notify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      uid: currentUser.uid,
-      username: currentUser.username,
-      productName: product.name,
-      tierLabel: tier.label,
-      price: cost,
-      balance: currentUser.balance.toFixed(2)
-    })
-  }).catch(() => {});
 }
 
 /* -------------------------------------------------------------
@@ -516,92 +526,77 @@ async function handleAuthSubmit(event) {
 
   try {
     if (activeAuthMode === 'login') {
-      let user = appUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-      
-      // If not in local cache, try to sync from Cloudflare D1
-      if (!user) {
-        await syncWithServer();
-        user = appUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-      }
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json().catch(() => ({}));
 
-      if (!user) {
-        setAuthNotice('Неверный логин или пароль', 'error');
+      if (!res.ok || !data.success) {
+        setAuthNotice(data.error || 'Неверный логин или пароль', 'error');
         return;
       }
 
-      if (user.isBanned) {
-        setAuthNotice('❌ Ваш аккаунт заблокирован Администратором!', 'error');
-        return;
+      currentUser = data.user;
+      if (data.token) {
+        localStorage.setItem('nekronium_auth_token', data.token);
       }
+      localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.uid);
 
-      currentUser = user;
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.uid);
       closeAuthModal();
       updateNavAuth();
       updateDashboardView();
-      showToast(`Добро пожаловать, ${user.username}! (UID #${user.uid})`, 'success');
+      showToast(`Добро пожаловать, ${currentUser.username}! (UID #${currentUser.uid})`, 'success');
     } else {
-      // Register directly in Cloudflare D1 via Worker
-      let newUid = null;
-      try {
-        const res = await fetch(`${API_BASE}/api/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json().catch(() => ({}));
+      const res = await fetch(`${API_BASE}/api/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json().catch(() => ({}));
 
-        if (!res.ok || data.error) {
-          setAuthNotice(data.error || 'Ошибка при регистрации', 'error');
-          return;
-        }
-
-        if (data.user && data.user.uid) {
-          newUid = data.user.uid;
-        }
-      } catch (e) {
-        console.warn('Worker register failed, fallback to local:', e);
+      if (!res.ok || data.error) {
+        setAuthNotice(data.error || 'Ошибка при регистрации', 'error');
+        return;
       }
 
-      if (!newUid) {
-        let nextUid = Number(localStorage.getItem(STORAGE_KEYS.NEXT_UID) || 2);
-        newUid = nextUid;
-        localStorage.setItem(STORAGE_KEYS.NEXT_UID, String(nextUid + 1));
-      }
+      // Auto-login
+      const loginRes = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const loginData = await loginRes.json().catch(() => ({}));
 
-      const randomKey = 'NEKRONIUM-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
-                        Math.random().toString(36).substring(2, 6).toUpperCase() + '-' +
-                        Math.random().toString(36).substring(2, 6).toUpperCase();
-
-      const newUser = {
-        uid: newUid,
-        username: username,
-        password: password,
-        role: 'user',
-        balance: 0,
-        licenseKey: randomKey,
-        hwid: null,
-        lastHwidReset: null,
-        subscription: null
-      };
-
-      const existingIndex = appUsers.findIndex(u => u.uid === newUser.uid);
-      if (existingIndex >= 0) {
-        appUsers[existingIndex] = newUser;
+      if (loginRes.ok && loginData.success) {
+        currentUser = loginData.user;
+        if (loginData.token) {
+          localStorage.setItem('nekronium_auth_token', loginData.token);
+        }
+        localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.uid);
       } else {
-        appUsers.push(newUser);
+        currentUser = {
+          uid: data.user?.uid || 999,
+          username: username,
+          role: 'user',
+          balance: 0,
+          hwid: null,
+          subscription: null
+        };
+        localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.uid);
       }
-
-      saveUsersToStorage(newUser);
-
-      currentUser = newUser;
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, newUser.uid);
 
       closeAuthModal();
       updateNavAuth();
       updateDashboardView();
-      showToast(`Аккаунт успешно создан! Ваш UID: #${newUser.uid}`, 'success');
+      showToast(`🎉 Аккаунт успешно создан! Ваш UID: #${currentUser.uid}`, 'success');
     }
+  } catch (err) {
+    setAuthNotice('Ошибка сети или сервера. Попробуйте еще раз.', 'error');
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -613,6 +608,8 @@ async function handleAuthSubmit(event) {
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  localStorage.removeItem('nekronium_current_user_data');
+  localStorage.removeItem('nekronium_auth_token');
   updateNavAuth();
   updateDashboardView();
   showToast('Вы вышли из системы', 'info');
@@ -755,7 +752,7 @@ function renderSubscriptionCard() {
   }
 }
 
-function toggleSubscriptionFreeze() {
+async function toggleSubscriptionFreeze() {
   if (!currentUser || !currentUser.subscription) return;
 
   const sub = currentUser.subscription;
@@ -764,39 +761,26 @@ function toggleSubscriptionFreeze() {
     return;
   }
 
-  const now = Date.now();
-  const FREEZE_COOLDOWN_MS = 10 * 24 * 3600 * 1000; // 10 days cooldown
+  try {
+    const res = await fetch(`${API_BASE}/api/user/freeze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: currentUser.uid })
+    });
+    const data = await res.json().catch(() => ({}));
 
-  if (!sub.isFrozen) {
-    // Check 10-day cooldown
-    if (sub.lastFrozenAt && (now - sub.lastFrozenAt) < FREEZE_COOLDOWN_MS) {
-      const msLeft = FREEZE_COOLDOWN_MS - (now - sub.lastFrozenAt);
-      const daysLeft = Math.ceil(msLeft / (24 * 3600 * 1000));
-      showToast(`Заморозка доступна 1 раз в 10 дней! Подождите ещё ${daysLeft} дн.`, 'error');
-      return;
+    if (res.ok && data.success) {
+      sub.isFrozen = data.isFrozen;
+      sub.remainingSeconds = data.remainingSeconds;
+      sub.expiresAt = data.expiresAt;
+      localStorage.setItem('nekronium_current_user_data', JSON.stringify(currentUser));
+      renderSubscriptionCard();
+      showToast(data.isFrozen ? 'Подписка успешно заморожена! Таймер остановлен.' : 'Подписка разморожена! Доступ возобновлен.', data.isFrozen ? 'info' : 'success');
+    } else {
+      showToast(data.error || 'Ошибка при изменении статуса подписки', 'error');
     }
-
-    if (sub.expiresAt <= now) {
-      showToast('Невозможно заморозить истекшую подписку', 'error');
-      return;
-    }
-    const remaining = Math.max(0, Math.floor((sub.expiresAt - now) / 1000));
-    sub.remainingSeconds = remaining;
-    sub.isFrozen = true;
-    sub.frozenAt = now;
-    sub.lastFrozenAt = now;
-    saveUsersToStorage();
-    renderSubscriptionCard();
-    showToast('Подписка успешно заморожена! Таймер остановлен.', 'info');
-  } else {
-    // Unfreeze logic
-    const newExpiresAt = now + (sub.remainingSeconds * 1000);
-    sub.expiresAt = newExpiresAt;
-    sub.isFrozen = false;
-    sub.unfrozenAt = now;
-    saveUsersToStorage();
-    renderSubscriptionCard();
-    showToast('Подписка разморожена! Доступ возобновлен.', 'success');
+  } catch (e) {
+    showToast('Ошибка связи с сервером', 'error');
   }
 }
 
@@ -1309,7 +1293,7 @@ async function adminToggleUserBan(uid) {
   try {
     const res = await fetch(`${API_BASE}/api/user/ban`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ uid: target.uid, banned: willBan })
     });
     const data = await res.json().catch(() => ({}));
@@ -1696,7 +1680,7 @@ async function adminCreatePromo() {
   try {
     const res = await fetch(`${API_BASE}/api/promo/create`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ code, bonusPercent, uses })
     });
     const data = await res.json().catch(() => ({}));
@@ -1719,7 +1703,9 @@ async function loadAdminPromos() {
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Загрузка списка промокодов...</td></tr>';
 
   try {
-    const res = await fetch(`${API_BASE}/api/promo/list`);
+    const res = await fetch(`${API_BASE}/api/promo/list`, {
+      headers: getAuthHeaders()
+    });
     const data = await res.json().catch(() => ({}));
 
     if (res.ok && data.promocodes) {
@@ -1756,7 +1742,7 @@ async function adminDeletePromo(code) {
   try {
     const res = await fetch(`${API_BASE}/api/promo/delete`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ code })
     });
     if (res.ok) {
@@ -1798,7 +1784,7 @@ async function adminGenerateKeys() {
   try {
     const res = await fetch(`${API_BASE}/api/license/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         productId,
         productName,
@@ -1827,7 +1813,9 @@ async function loadAdminKeys() {
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Загрузка ключей...</td></tr>';
 
   try {
-    const res = await fetch(`${API_BASE}/api/license/list`);
+    const res = await fetch(`${API_BASE}/api/license/list`, {
+      headers: getAuthHeaders()
+    });
     const data = await res.json().catch(() => ({}));
 
     if (res.ok && data.keys) {
