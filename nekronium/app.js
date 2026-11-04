@@ -382,7 +382,7 @@ function renderProducts() {
 
     let buyBtnPrice = `${currentTier ? currentTier.price : 0} ₽`;
     if (currentTier && currentTier.hasDiscount && currentTier.oldPrice && currentTier.oldPrice > currentTier.price) {
-      buyBtnPrice = `${currentTier.price} ₽ <span class="tier-old-price" style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-left: 6px;">${currentTier.oldPrice} ₽</span>`;
+      buyBtnPrice = `${currentTier.price} ₽ <span class="btn-old-price">${currentTier.oldPrice} ₽</span>`;
     }
 
     return `
@@ -1810,7 +1810,7 @@ async function adminGenerateKeys() {
 async function loadAdminKeys() {
   const tbody = document.getElementById('adminKeysTableBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Загрузка ключей...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Загрузка ключей...</td></tr>';
 
   try {
     const res = await fetch(`${API_BASE}/api/license/list`, {
@@ -1820,15 +1820,39 @@ async function loadAdminKeys() {
 
     if (res.ok && data.keys) {
       if (data.keys.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 24px;">База сгенерированных ключей пуста. Сгенерируйте ключи выше!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 24px;">База сгенерированных ключей пуста. Сгенерируйте ключи выше!</td></tr>';
         return;
       }
 
       tbody.innerHTML = data.keys.map(k => {
         const isUsed = Boolean(k.is_used);
-        const statusBadge = isUsed 
-          ? `<span class="badge badge-inactive">ИСПОЛЬЗОВАН (UID #${k.used_by_uid || '?'})</span>`
-          : `<span class="badge badge-success">АКТИВЕН ✓</span>`;
+        let statusHtml = '';
+
+        if (isUsed) {
+          const activatedAtStr = k.used_at ? new Date(k.used_at).toLocaleString('ru-RU') : '—';
+          const whoActivated = k.used_by_username ? `${k.used_by_username} (UID #${k.used_by_uid})` : `UID #${k.used_by_uid || '?'}`;
+          statusHtml = `
+            <div>
+              <span class="badge badge-inactive">ИСПОЛЬЗОВАН</span>
+              <div style="font-size: 0.78rem; color: var(--accent-cyan); margin-top: 4px; font-weight: 600;">
+                👤 ${whoActivated}
+              </div>
+              <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+                🕒 ${activatedAtStr}
+              </div>
+            </div>
+          `;
+        } else {
+          statusHtml = `
+            <div>
+              <span class="badge badge-success">АКТИВЕН ✓</span>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">
+                Ожидает активации
+              </div>
+            </div>
+          `;
+        }
+
         const dateStr = k.created_at ? new Date(k.created_at).toLocaleDateString('ru-RU') : '—';
 
         return `
@@ -1840,16 +1864,41 @@ async function loadAdminKeys() {
             </td>
             <td><strong>${k.product_name}</strong></td>
             <td>${k.tier_label}</td>
-            <td>${statusBadge}</td>
+            <td>${statusHtml}</td>
             <td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="adminDeleteKey('${k.key}')" title="Удалить ключ">🗑️ Удалить</button>
+            </td>
           </tr>
         `;
       }).join('');
     } else {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Не удалось загрузить ключи</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Не удалось загрузить ключи</td></tr>';
     }
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #ef4444;">Ошибка загрузки ключей</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: #ef4444;">Ошибка загрузки ключей</td></tr>';
+  }
+}
+
+async function adminDeleteKey(key) {
+  if (!confirm(`Удалить лицензионный ключ ${key}?`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/license/delete`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ key })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      showToast(`Ключ ${key} удален`, 'info');
+      loadAdminKeys();
+    } else {
+      showToast(data.error || 'Ошибка при удалении ключа', 'error');
+    }
+  } catch (e) {
+    showToast('Ошибка при удалении ключа', 'error');
   }
 }
 
