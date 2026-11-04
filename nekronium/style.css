@@ -207,6 +207,17 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(255, 255, 255, 0.25);
 }
+.btn-primary .btn-old-price {
+  color: #ef4444 !important;
+  text-decoration: line-through !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  margin-left: 6px !important;
+  display: inline-block !important;
+  background: rgba(239, 68, 68, 0.14) !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+}
 .btn-secondary {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-main);
